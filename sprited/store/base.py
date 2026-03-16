@@ -263,7 +263,7 @@ class StoreField(BaseModel):
         Returns:
             tuple[Any, bool]: 第一个元素为默认值，第二个元素为是否是从全局配置中获取的默认值。
         """
-        from become_human.config import global_config
+        from sprited.config import global_config
         value = global_config.get(namespace[3])
         if isinstance(value, dict):
             for key in namespace[4:]:
@@ -603,7 +603,7 @@ class StoreModel:
         Returns:
             StoreModel(frozen=True) 实例
         """
-        from become_human.config import global_config
+        from sprited.config import global_config
         config = global_config.get(plugin_name, {})
         if not isinstance(config, dict):
             raise ValueError(f"插件 {plugin_name} 的全局配置不是字典类型")

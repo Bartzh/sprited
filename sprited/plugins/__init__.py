@@ -1,12 +1,12 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from become_human.plugins.reminder import ReminderPlugin
-    from become_human.plugins.time_incrementer import TimeIncrementerPlugin
-    from become_human.plugins.instruction import InstructionPlugin
-    from become_human.plugins.note import NotePlugin
-    from become_human.plugins.cli import SimpleCLI
-    from become_human.plugins.api import SimpleAPI
+    from sprited.plugins.reminder import ReminderPlugin
+    from sprited.plugins.time_incrementer import TimeIncrementerPlugin
+    from sprited.plugins.instruction import InstructionPlugin
+    from sprited.plugins.note import NotePlugin
+    from sprited.plugins.cli import SimpleCLI
+    from sprited.plugins.api import SimpleAPI
 
 __all__ = [
     'ReminderPlugin',
@@ -19,21 +19,21 @@ __all__ = [
 
 def __getattr__(name):
     if name == 'ReminderPlugin':
-        from become_human.plugins.reminder import ReminderPlugin
+        from sprited.plugins.reminder import ReminderPlugin
         return ReminderPlugin
     if name == 'TimeIncrementerPlugin':
-        from become_human.plugins.time_incrementer import TimeIncrementerPlugin
+        from sprited.plugins.time_incrementer import TimeIncrementerPlugin
         return TimeIncrementerPlugin
     if name == 'InstructionPlugin':
-        from become_human.plugins.instruction import InstructionPlugin
+        from sprited.plugins.instruction import InstructionPlugin
         return InstructionPlugin
     if name == 'NotePlugin':
-        from become_human.plugins.note import NotePlugin
+        from sprited.plugins.note import NotePlugin
         return NotePlugin
     if name =='SimpleCLI':
-        from become_human.plugins.cli import SimpleCLI
+        from sprited.plugins.cli import SimpleCLI
         return SimpleCLI
     if name == 'SimpleAPI':
-        from become_human.plugins.api import SimpleAPI
+        from sprited.plugins.api import SimpleAPI
         return SimpleAPI
     raise AttributeError(f"module {__name__} has no attribute {name}")

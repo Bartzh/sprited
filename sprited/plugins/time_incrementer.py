@@ -1,12 +1,12 @@
 from typing import Literal, Optional
 from loguru import logger
 
-from become_human.plugin import *
-from become_human.types.manager import CallSpriteRequest
-from become_human.times import TimestampUs
-from become_human.store.base import StoreModel, StoreField
-from become_human.store.manager import store_manager
-from become_human.manager import sprite_manager
+from sprited.plugin import *
+from sprited.types.manager import CallSpriteRequest
+from sprited.times import TimestampUs
+from sprited.store.base import StoreModel, StoreField
+from sprited.store.manager import store_manager
+from sprited.manager import sprite_manager
 
 NAME = 'time_incrementer'
 

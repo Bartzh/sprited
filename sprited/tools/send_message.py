@@ -3,10 +3,10 @@ from typing import Annotated
 from langchain.tools import tool, ToolRuntime
 from langgraph.types import Command
 
-from become_human.times import Times
-from become_human.message import SpritedMsgMeta, DEFAULT_TOOL_MSG_TYPE
-from become_human.store.manager import store_manager
-from become_human.types.manager import CallSpriteRequest
+from sprited.times import Times
+from sprited.message import SpritedMsgMeta, DEFAULT_TOOL_MSG_TYPE
+from sprited.store.manager import store_manager
+from sprited.types.manager import CallSpriteRequest
 
 
 SEND_MESSAGE = "send_message"

@@ -21,10 +21,10 @@ from langchain_core.messages import (
     ContentBlock
 )
 from langgraph.graph.message import _add_messages_wrapper, _format_messages, Messages, REMOVE_ALL_MESSAGES
-from become_human.times import Times, format_time
-from become_human.utils import to_json_like_string, deep_dict_update, exclude_none_in_dict
-from become_human.names import PROJECT_NAME
-from become_human.store.manager import store_manager
+from sprited.times import Times, format_time
+from sprited.utils import to_json_like_string, deep_dict_update, exclude_none_in_dict
+from sprited.names import PROJECT_NAME
+from sprited.store.manager import store_manager
 
 SPRITED_MESSAGE_METADATA_KEY = PROJECT_NAME
 

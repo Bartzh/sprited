@@ -4,11 +4,11 @@ from packaging.specifiers import SpecifierSet
 from pydantic import BaseModel, Field, ConfigDict, field_validator, ValidationInfo
 from langchain_core.messages import BaseMessage, AIMessage, ToolMessage, RemoveMessage
 from langchain_core.tools import BaseTool
-from become_human.types.manager import CallSpriteRequest, DoubleTextingStrategy
-from become_human.tool import SpriteTool
-from become_human.store.base import StoreModel
-from become_human.message import add_messages
-from become_human.names import PROJECT_NAME
+from sprited.types.manager import CallSpriteRequest, DoubleTextingStrategy
+from sprited.tool import SpriteTool
+from sprited.store.base import StoreModel
+from sprited.message import add_messages
+from sprited.names import PROJECT_NAME
 
 __all__ = [
     'BasePlugin',

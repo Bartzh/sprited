@@ -22,10 +22,10 @@ from webpush import WebPush, WebPushSubscription
 
 from langchain_core.messages import AIMessage, HumanMessage
 
-from become_human.plugin import *
-from become_human import sprite_manager
-from become_human.message import SpritedMsgMeta, convert_to_content_blocks, DEFAULT_AI_MSG_TYPE, DEFAULT_USER_MSG_TYPE
-from become_human.tools.send_message import SEND_MESSAGE, SEND_MESSAGE_CONTENT
+from sprited.plugin import *
+from sprited import sprite_manager
+from sprited.message import SpritedMsgMeta, convert_to_content_blocks, DEFAULT_AI_MSG_TYPE, DEFAULT_USER_MSG_TYPE
+from sprited.tools.send_message import SEND_MESSAGE, SEND_MESSAGE_CONTENT
 
 NAME = 'simple_api'
 

@@ -2,9 +2,9 @@ from pydantic import BaseModel, Field
 from typing import Optional, Type
 from datetime import date
 
-from become_human.times import SpriteTimeSettings, Times, TimestampUs
-from become_human.store.base import StoreField, StoreModel
-from become_human.names import PROJECT_NAME
+from sprited.times import SpriteTimeSettings, Times, TimestampUs
+from sprited.store.base import StoreField, StoreModel
+from sprited.names import PROJECT_NAME
 
 
 # 新想法，通过结构化然后让AI生成所有没有指定的细节

@@ -1,7 +1,7 @@
 from typing import TypeVar
-from become_human.store.base import StoreModel, store_asearch
-from become_human.store.settings import SpritedSettings
-from become_human.store.states import SpritedStates
+from sprited.store.base import StoreModel, store_asearch
+from sprited.store.settings import SpritedSettings
+from sprited.store.states import SpritedStates
 
 StoreType = TypeVar('StoreType', bound=StoreModel)
 class StoreManager:

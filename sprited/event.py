@@ -2,8 +2,8 @@ from typing import Callable, Union
 from weakref import WeakMethod
 from inspect import iscoroutinefunction
 from loguru import logger
-from become_human.utils import filter_kwargs
-from become_human.names import PROJECT_NAME
+from sprited.utils import filter_kwargs
+from sprited.names import PROJECT_NAME
 
 ON_SPRITE_OUTPUT_EVENT = PROJECT_NAME + ':on_sprite_output'
 

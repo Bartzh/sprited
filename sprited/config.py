@@ -8,11 +8,11 @@ from loguru import logger
 
 from langgraph.store.base import PutOp
 
-from become_human.utils import dump_basemodels, get_readable_type_name, to_json_like_string
-from become_human.store.base import StoreModel, StoreField, store_alist_namespaces, store_abatch
-from become_human.store.settings import SpritedSettings
-from become_human.plugin import BasePlugin, PluginRelation
-from become_human.names import PROJECT_NAME
+from sprited.utils import dump_basemodels, get_readable_type_name, to_json_like_string
+from sprited.store.base import StoreModel, StoreField, store_alist_namespaces, store_abatch
+from sprited.store.settings import SpritedSettings
+from sprited.plugin import BasePlugin, PluginRelation
+from sprited.names import PROJECT_NAME
 
 SPRITES_FILE_PATH = "./config/sprites"
 SPRITE_COMMENTS_FILE_PATH = "./config/sprite_comments.toml"

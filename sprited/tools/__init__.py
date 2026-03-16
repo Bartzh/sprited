@@ -1,9 +1,9 @@
 import os
 #from langchain_sandbox import PyodideSandboxTool
-from become_human.tool import SpriteTool
-from become_human.tools.record_thoughts import record_thoughts
-from become_human.tools.send_message import send_message
-from become_human.tools.web_search import web_search
+from sprited.tool import SpriteTool
+from sprited.tools.record_thoughts import record_thoughts
+from sprited.tools.send_message import send_message
+from sprited.tools.web_search import web_search
 
 CORE_TOOLS = [
     record_thoughts,

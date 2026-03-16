@@ -1,8 +1,8 @@
 import os
 import asyncio
-from become_human.tools.send_message import SEND_MESSAGE, SEND_MESSAGE_CONTENT
-from become_human.plugin import *
-from become_human import sprite_manager
+from sprited.tools.send_message import SEND_MESSAGE, SEND_MESSAGE_CONTENT
+from sprited.plugin import *
+from sprited import sprite_manager
 
 sprite_id = os.getenv('CLI_SPRITE_ID', "default_sprite_1")
 user_name = os.getenv('CLI_USER_NAME')

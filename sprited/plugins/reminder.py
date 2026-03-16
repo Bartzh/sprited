@@ -3,13 +3,13 @@ from datetime import datetime
 
 from langchain.tools import ToolRuntime, tool
 
-from become_human.times import Times, format_time, format_duration, TimestampUs
-from become_human.message import DictMsgMeta
-from become_human.scheduler import Schedule, get_schedules
-from become_human.store.manager import store_manager
-from become_human.types.manager import CallSpriteRequest
-from become_human.plugin import BasePlugin
-from become_human.manager import sprite_manager
+from sprited.times import Times, format_time, format_duration, TimestampUs
+from sprited.message import DictMsgMeta
+from sprited.scheduler import Schedule, get_schedules
+from sprited.store.manager import store_manager
+from sprited.types.manager import CallSpriteRequest
+from sprited.plugin import BasePlugin
+from sprited.manager import sprite_manager
 
 NAME = 'reminder'
 

@@ -14,14 +14,14 @@ from langchain_core.messages.utils import count_tokens_approximately
 
 from langchain_dev_utils.chat_models import load_chat_model
 
-from become_human.types.main import InterruptData, MainState
-from become_human.types.manager import CallSpriteRequest, DoubleTextingStrategy, SpriteOutput
-from become_human.graphs.base import StateMerger
-from become_human.graphs.main import MainGraph, SEND_MESSAGE_TOOL_CONTENT
-from become_human.config import load_config, get_init_on_startup_sprite_ids, get_sprite_enabled_plugin_names
-from become_human.utils import is_valid_json, gather_safe
-from become_human.times import format_time, format_duration, Times, parse_timedelta, SpriteTimeSettings, timedelta_to_microseconds, TimestampUs
-from become_human.message import (
+from sprited.types.main import InterruptData, MainState
+from sprited.types.manager import CallSpriteRequest, DoubleTextingStrategy, SpriteOutput
+from sprited.graphs.base import StateMerger
+from sprited.graphs.main import MainGraph, SEND_MESSAGE_TOOL_CONTENT
+from sprited.config import load_config, get_init_on_startup_sprite_ids, get_sprite_enabled_plugin_names
+from sprited.utils import is_valid_json, gather_safe
+from sprited.times import format_time, format_duration, Times, parse_timedelta, SpriteTimeSettings, timedelta_to_microseconds, TimestampUs
+from sprited.message import (
     format_messages,
     extract_text_parts,
     construct_system_message,
@@ -31,15 +31,15 @@ from become_human.message import (
     DEFAULT_TOOL_MSG_TYPE,
     DEFAULT_USER_MSG_TYPE
 )
-from become_human.store.base import store_setup, store_stop_listener, store_adelete_namespace
-from become_human.store.settings import SpritedSettings
-from become_human.store.states import SpritedStates
-from become_human.store.manager import store_manager
-from become_human.tools.send_message import SEND_MESSAGE, SEND_MESSAGE_CONTENT
-from become_human.scheduler import get_schedules, tick_schedules, delete_schedules, init_schedules_db, Schedule, update_schedules
-from become_human.plugin import *
-from become_human.plugin import ChangeableField
-from become_human.event import event_bus, ON_SPRITE_OUTPUT_EVENT
+from sprited.store.base import store_setup, store_stop_listener, store_adelete_namespace
+from sprited.store.settings import SpritedSettings
+from sprited.store.states import SpritedStates
+from sprited.store.manager import store_manager
+from sprited.tools.send_message import SEND_MESSAGE, SEND_MESSAGE_CONTENT
+from sprited.scheduler import get_schedules, tick_schedules, delete_schedules, init_schedules_db, Schedule, update_schedules
+from sprited.plugin import *
+from sprited.plugin import ChangeableField
+from sprited.event import event_bus, ON_SPRITE_OUTPUT_EVENT
 
 
 class SpriteManager:

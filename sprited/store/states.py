@@ -1,6 +1,6 @@
-from become_human.store.base import StoreModel, StoreField
-from become_human.times import Times, SpriteTimeSettings, TimestampUs
-from become_human.names import PROJECT_NAME
+from sprited.store.base import StoreModel, StoreField
+from sprited.times import Times, SpriteTimeSettings, TimestampUs
+from sprited.names import PROJECT_NAME
 
 class SpritedStates(StoreModel):
     _namespace = (PROJECT_NAME,)

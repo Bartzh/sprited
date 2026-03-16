@@ -2,10 +2,10 @@ from typing import Annotated, Any
 
 from langchain.tools import tool, ToolRuntime
 
-from become_human.times import Times
-from become_human.message import SpritedMsgMeta, DEFAULT_TOOL_MSG_TYPE
-from become_human.store.manager import store_manager
-from become_human.types.manager import CallSpriteRequest
+from sprited.times import Times
+from sprited.message import SpritedMsgMeta, DEFAULT_TOOL_MSG_TYPE
+from sprited.store.manager import store_manager
+from sprited.types.manager import CallSpriteRequest
 
 RECORD_THOUGHTS = "record_thoughts"
 RECORD_THOUGHTS_CONTENT = "content"

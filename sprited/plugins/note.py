@@ -1,13 +1,13 @@
 from typing import Annotated, Optional, override
 from dataclasses import dataclass
 from langchain.tools import tool, ToolRuntime
-from become_human.store.base import StoreModel, StoreField
-from become_human.store.manager import store_manager
-from become_human.manager import CallSpriteRequest
-from become_human.plugin import *
-from become_human.manager import sprite_manager
-from become_human.times import Times, format_time
-from become_human.message import DictMsgMeta
+from sprited.store.base import StoreModel, StoreField
+from sprited.store.manager import store_manager
+from sprited.manager import CallSpriteRequest
+from sprited.plugin import *
+from sprited.manager import sprite_manager
+from sprited.times import Times, format_time
+from sprited.message import DictMsgMeta
 
 NAME = 'note'
 

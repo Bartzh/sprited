@@ -8,8 +8,8 @@ from langchain_core.messages import (
     AIMessage,
     BaseMessage,
 )
-from become_human.times import Times
-from become_human.message import add_messages
+from sprited.times import Times
+from sprited.message import add_messages
 
 
 

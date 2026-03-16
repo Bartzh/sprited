@@ -27,20 +27,20 @@ from langchain_core.language_models.chat_models import BaseChatModel
 import aiosqlite
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
-from become_human.graphs.base import BaseGraph
-from become_human.message import add_messages, SpritedMsgMeta, SpritedMsgMetaOptionalTimes
-from become_human.types.main import MainState, StateEntry, InterruptData
-from become_human.types.manager import CallSpriteRequest
-from become_human.times import Times
-from become_human.message import construct_system_message, DEFAULT_AI_MSG_TYPE, DEFAULT_TOOL_MSG_TYPE
-from become_human.store.manager import store_manager
-from become_human.tool import SpriteTool
-from become_human.tools import CORE_TOOLS
-from become_human.tools.send_message import SEND_MESSAGE_TOOL_CONTENT, SEND_MESSAGE, SEND_MESSAGE_CONTENT
-from become_human.tools.record_thoughts import RECORD_THOUGHTS
-from become_human.plugin import *
-from become_human.plugin import ChangeableField
-from become_human.config import get_sprite_enabled_plugin_names
+from sprited.graphs.base import BaseGraph
+from sprited.message import add_messages, SpritedMsgMeta, SpritedMsgMetaOptionalTimes
+from sprited.types.main import MainState, StateEntry, InterruptData
+from sprited.types.manager import CallSpriteRequest
+from sprited.times import Times
+from sprited.message import construct_system_message, DEFAULT_AI_MSG_TYPE, DEFAULT_TOOL_MSG_TYPE
+from sprited.store.manager import store_manager
+from sprited.tool import SpriteTool
+from sprited.tools import CORE_TOOLS
+from sprited.tools.send_message import SEND_MESSAGE_TOOL_CONTENT, SEND_MESSAGE, SEND_MESSAGE_CONTENT
+from sprited.tools.record_thoughts import RECORD_THOUGHTS
+from sprited.plugin import *
+from sprited.plugin import ChangeableField
+from sprited.config import get_sprite_enabled_plugin_names
 
 
 

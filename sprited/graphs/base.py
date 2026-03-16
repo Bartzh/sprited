@@ -9,7 +9,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langgraph.graph.state import CompiledStateGraph, StateGraph
 from langgraph.channels.binop import _get_overwrite, _strip_extras
 
-from become_human.tool import SpriteTool
+from sprited.tool import SpriteTool
 
 class BaseGraph:
 

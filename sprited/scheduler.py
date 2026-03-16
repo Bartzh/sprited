@@ -11,9 +11,9 @@ import random
 from loguru import logger
 from tzlocal import get_localzone
 
-from become_human.times import TimestampUs, Times, nowtz, SerializableTimeZone, format_time, seconds_to_datetime
-from become_human.store.manager import store_manager
-from become_human.config import get_sprite_enabled_plugin_names
+from sprited.times import TimestampUs, Times, nowtz, SerializableTimeZone, format_time, seconds_to_datetime
+from sprited.store.manager import store_manager
+from sprited.config import get_sprite_enabled_plugin_names
 
 
 DATABASE_PATH = "./data/schedules.sqlite"
