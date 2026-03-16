@@ -1,0 +1,34 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+.env
+node_modules
+
+# ide
+.trae
+.lingma
+.vscode
+*.code-workspace
+.idea
+
+deno.exe
+
+/test_*
+.pytest_cache
+
+config
+data
+logs
+
+app_*.py
+
+applicationServerKey
+private_key.pem
+public_key.pem
