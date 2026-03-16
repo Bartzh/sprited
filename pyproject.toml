@@ -37,3 +37,6 @@ dev = [
     "matplotlib>=3.10.8",
     "pytest>=9.0.2",
 ]
+
+[tool.setuptools.packages.find]
+include = ["sprited*"]
