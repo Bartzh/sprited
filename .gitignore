@@ -9,7 +9,6 @@ wheels/
 # Virtual environments
 .venv
 .env
-node_modules
 
 # ide
 .trae
@@ -17,8 +16,6 @@ node_modules
 .vscode
 *.code-workspace
 .idea
-
-deno.exe
 
 /test_*
 .pytest_cache
