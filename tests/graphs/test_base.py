@@ -6,7 +6,7 @@ from pydantic import ValidationError, BaseModel, Field
 from langchain.messages import HumanMessage, AIMessage, RemoveMessage, AnyMessage
 from langgraph.graph.message import REMOVE_ALL_MESSAGES, add_messages
 
-from become_human.graphs.base import StateMerger
+from sprited.graphs.base import StateMerger
 
 class State(BaseModel):
     messages: Annotated[list[AnyMessage], add_messages] = Field(default_factory=list)

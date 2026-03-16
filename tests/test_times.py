@@ -13,7 +13,7 @@ from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 from pydantic import ValidationError
 
-from become_human.times import (
+from sprited.times import (
     nowtz, utcnow, timedelta_to_microseconds, TimestampUs,
     SerializableTimeZone, SpriteTimeSettings,
     format_time, format_duration, parse_timedelta, Times
