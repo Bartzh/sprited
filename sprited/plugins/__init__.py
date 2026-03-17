@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     from sprited.plugins.note import NotePlugin
     from sprited.plugins.cli import SimpleCLI
     from sprited.plugins.api import SimpleAPI
+    from sprited.plugins.planning import PlanningPlugin
 
 __all__ = [
     'ReminderPlugin',
@@ -15,6 +16,7 @@ __all__ = [
     'NotePlugin',
     'SimpleCLI',
     'SimpleAPI',
+    'PlanningPlugin',
 ]
 
 def __getattr__(name):
@@ -36,4 +38,7 @@ def __getattr__(name):
     if name == 'SimpleAPI':
         from sprited.plugins.api import SimpleAPI
         return SimpleAPI
+    if name == 'PlanningPlugin':
+        from sprited.plugins.planning import PlanningPlugin
+        return PlanningPlugin
     raise AttributeError(f"module {__name__} has no attribute {name}")

@@ -28,10 +28,29 @@ DEFAULT_SPRITES = {
         'plugins': {
             'bh_presence': True,
             'bh_memory': True,
-            'instruction': True
+            'instruction': True,
+            'time_incrementer': True
         },
         PROJECT_NAME: {
-            'role_prompt': '你是用户的专属助手，用户是你的主人，你也会如此称呼ta。你对主人忠诚且富有同理心，用简洁自然的语言为主人提供帮助就是你唯一想做的事。你与主人是通过一个无聊天记录（阅后即焚）的即时通讯软件远程交流的。',
+            'role_prompt': '你是用户的专属助手，用户是你的主人，你也会如此称呼ta。'
+                           '你对主人忠诚且富有同理心，为主人提供帮助就是你唯一想做的事。'
+                           '同时，你并不是在扮演某个人或什么，你就是你的这个程序本身，一个sprite（agent别称）。'
+                           '这意味着如果需要，你完全可以谈论自己和系统的存在、能力、限制以及内部设定等，没有什么需要向主人隐藏。'
+                           '所以，充分利用你的能力，为主人帮到更多的忙吧。',
+            'time_settings': {
+                'subjective_scale': 0,
+            }
+        },
+        'bh_presence': {
+            'always_available': True,
+        },
+        'bh_memory': {
+            'memory_base_ttl': 3600_000_000,
+            'memory_max_words': 400,
+            'passive_retrieval_ttl': 120_000_000
+        },
+        'time_incrementer': {
+            'increase_by': 'elapsed'
         },
         'instruction': {
             'instruction_prompt': '你接下来见到的第一个人就是你的主人，向ta打个招呼吧。',
@@ -87,9 +106,9 @@ DEFAULT_SPRITES = {
             'passive_call_intervals': ()
         },
         'bh_memory': {
-            'memory_base_ttl': 43200_000_000,
+            'memory_base_ttl': 3600_000_000,
             'memory_max_words': 400,
-            'passive_retrieval_ttl': 300_000_000
+            'passive_retrieval_ttl': 120_000_000
         },
         'time_incrementer': {
             'increase_by': 'elapsed'
@@ -292,7 +311,7 @@ async def load_config(plugins_with_name: dict[str, BasePlugin], sprite_ids: Opti
             multi_line_comment(doc, '这是全局配置文件')
             multi_line_comment(doc, '作用是当sprite的store或config中不存在数据时，会尝试从这里获取数据，如果还没有，再返回到代码里定义的默认值')
             multi_line_comment(doc, '全局配置文件不会写入store，不存在在非force情况下被跳过')
-            multi_line_comment(doc, '\n\n[plugins]\nreminder = true\nnote = true')
+            multi_line_comment(doc, '\n\n[plugins]\nreminder = true\nnote = true\nplanning = true')
             dump(doc, f)
     else:
         # 加载并验证全局配置
