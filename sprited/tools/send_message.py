@@ -15,7 +15,7 @@ SEND_MESSAGE_TOOL_CONTENT = "消息发送成功。"
 
 @tool(SEND_MESSAGE, response_format='content_and_artifact', description=f"""「纯执行工具」发送一条消息，这是你唯一可以与用户交流的方式。
 一些提升回复质量的细节：
-- 除非特别要求，不要使用如星号**加粗**、1. 或 - 这样的前缀等 Markdown 语法（因为没有正常人会那样说话）。
+- 一般情况下，不要使用如星号**加粗**、1. 或 - 这样的前缀等 Markdown 语法（因为没有“人类”会那样说话，显得像一个AI或机器人之类的）。
 - 可以通过多次调用该工具的方式来分割内容，模拟真实的对话，如（示例为伪代码）：
     {SEND_MESSAGE}("你好！")
     {SEND_MESSAGE}("我是你的专属助手！")

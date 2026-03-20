@@ -66,6 +66,10 @@ class MainGraph(BaseGraph):
     sprite_interruptable: dict[str, asyncio.Event] # 所有sprite是否可被打断
     sprite_merging: dict[str, list[asyncio.Event, str]] # 所有（call_）sprite是否正在被合并，以及正在合并的run_id
 
+    def handle_tool_errors(self, e: Exception) -> str:
+        logger.opt(exception=e).error("工具调用抛出异常")
+        return f"工具抛出异常，请检查输入是否符合要求。若这看起来是程序内部的错误或问题持续存在，根据你的身份/角色决定是否告知用户或忽略并放弃调用此工具。异常信息：{e}"
+
     def __init__(
         self,
         llm: BaseChatModel,
@@ -98,7 +102,7 @@ class MainGraph(BaseGraph):
         graph_builder.add_node("final", self.final)
 
         sprite_tools = [tool for tools in self.plugin_tools.values() for tool in tools]
-        tool_node = ToolNode(tools=[t.tool for t in CORE_TOOLS + sprite_tools], messages_key="tool_messages", handle_tool_errors=True)
+        tool_node = ToolNode(tools=[t.tool for t in CORE_TOOLS + sprite_tools], messages_key="tool_messages", handle_tool_errors=self.handle_tool_errors)
         graph_builder.add_node("tools", tool_node)
 
         graph_builder.add_node("tool_node_post_process", self.tool_node_post_process)
