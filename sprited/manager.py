@@ -940,9 +940,9 @@ class SpriteManager:
                         messages = [messages]
                     if messages:
                         for message in messages:
-                            message.pretty_print()
+                            logger.info(message.pretty_repr())
                             if isinstance(message, AIMessage) and message.additional_kwargs.get("reasoning_content"):
-                                print("reasoning_content: " + message.additional_kwargs.get("reasoning_content", ""))
+                                logger.info("reasoning_content: " + message.additional_kwargs.get("reasoning_content", ""))
 
 
 

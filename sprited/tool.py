@@ -14,6 +14,7 @@ class SpriteTool:
         self,
         tool: Union[BaseTool, Callable],
         default_schema: Optional[dict[str, Any]] = None,
+        *,
         hide_by_default: bool = False,
     ):
         if isinstance(tool, BaseTool):
@@ -42,12 +43,13 @@ class SpriteTool:
         if self.hide_by_default:
             return None
         if self.default_schema is not None:
-            return deepcopy(self.default_schema)
-        schema = self.tool.tool_call_schema
-        if not isinstance(schema, dict):
-            schema = schema.model_json_schema()
+            schema = deepcopy(self.default_schema)
         else:
-            schema = deepcopy(schema)
-        schema['title'] = self.tool.name
-        schema['description'] = self.tool.description
+            schema = self.tool.tool_call_schema
+            if not isinstance(schema, dict):
+                schema = schema.model_json_schema()
+            else:
+                schema = deepcopy(schema)
+            schema['title'] = self.tool.name
+            schema['description'] = self.tool.description
         return schema

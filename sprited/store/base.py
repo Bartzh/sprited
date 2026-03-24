@@ -214,7 +214,7 @@ class StoreField(BaseModel):
     reducer: Optional[Callable[[Any, Any], Any]] = Field(default=None)
     frozen: bool = Field(default=False)
     """是否冻结该字段，冻结后将不能被修改。目前只实现了在StoreModel内的冻结，不会拦截直接修改数据库或通过配置文件的修改"""
-    validator: Optional[Callable[[Any], Any]] = Field(default=None) # TODO
+    #validator: Optional[Callable[[Any], Any]] = Field(default=None) # TODO
 
     model_config = ConfigDict(frozen=True)
 
@@ -257,32 +257,36 @@ class StoreField(BaseModel):
         else:
             raise AttributeError(f"{self._owner.__name__}的{self._attribute_name}没有设置默认值。")
 
-    def get_default_value_with_global_config(self, namespace: tuple[str, ...]) -> tuple[Any, bool]:
+    def get_default_value_with_global_config(self, model: "StoreModel") -> tuple[Any, bool]:
         """优先从全局配置中获取默认值，若不存在则返回默认值。
 
         Returns:
             tuple[Any, bool]: 第一个元素为默认值，第二个元素为是否是从全局配置中获取的默认值。
         """
-        from sprited.config import global_config
-        value = global_config.get(namespace[3])
-        if isinstance(value, dict):
-            for key in namespace[4:]:
-                value = value.get(key)
-                if not isinstance(value, dict):
-                    value = Unset
-                    break
+        if model._is_config:
+            from sprited.config import global_config
+            namespace = model._namespace
+            value = global_config.get(namespace[3])
             if isinstance(value, dict):
-                value = value.get(self._attribute_name, Unset)
-        else:
-            value = Unset
-        if value is not Unset:
-            type_hints = self._owner.get_type_hints()
-            if self._attribute_name in type_hints:
-                try:
-                    value = TypeAdapter(type_hints[self._attribute_name]).validate_python(value)
-                    return value, True
-                except ValidationError:
-                    logger.warning(f"全局配置中存在 {namespace[3:]}.{self._attribute_name} 的值，但其不符合 {type_hints[self._attribute_name]} 的类型。将使用默认值。")
+                for key in namespace[4:]:
+                    value = value.get(key)
+                    if not isinstance(value, dict):
+                        value = Unset
+                        break
+                if isinstance(value, dict):
+                    value = value.get(self._attribute_name, Unset)
+            else:
+                value = Unset
+            if value is not Unset:
+                type_hints = self._owner.get_type_hints()
+                if self._attribute_name in type_hints:
+                    try:
+                        value = TypeAdapter(type_hints[self._attribute_name]).validate_python(value)
+                        return value, True
+                    except ValidationError:
+                        logger.warning(f"全局配置中存在 {namespace[3:]}.{self._attribute_name} 的值，但其不符合 {type_hints[self._attribute_name]} 的类型。将使用默认值。")
+                else:
+                    logger.error(f"全局配置中存在 {namespace[3:]}.{self._attribute_name} 的值，但type_hints中没有该属性，这不应当发生。将使用默认值。")
         return self.get_default_value(), False
 
 class StoreItem(BaseModel):
@@ -376,7 +380,7 @@ class StoreModel:
                     # 如果要由default_factory生成默认值，则直接生成并保存到store中
                     if field.default_factory is not None:
                         if not frozen:
-                            default_value, is_global = field.get_default_value_with_global_config(self_namespace)
+                            default_value, is_global = field.get_default_value_with_global_config(self)
                             if not is_global:
                                 value = default_value
                                 new_value = item.value.copy()
@@ -424,7 +428,7 @@ class StoreModel:
             value = item.value
             if value is Unset:
                 if not self._frozen:
-                    value, is_global = attr.get_default_value_with_global_config(self._namespace)
+                    value, is_global = attr.get_default_value_with_global_config(self)
                     # 如果是default_factory生成的默认值，则保存到store中
                     if not is_global and attr.default_factory is not None:
                         item.value = value
@@ -449,6 +453,21 @@ class StoreModel:
                 raise AttributeError(f"这是一个冻结的 {self.__class__.__name__} 实例，不能被修改。")
             if attr.frozen:
                 raise AttributeError(f"{self.__class__.__name__}.{name} 是一个冻结的字段，不能被修改。")
+
+            item = self._cache.get(name)
+            if item is None:
+                item = StoreItem()
+            if attr.reducer is not None:
+                if item.value is Unset:
+                    current_value = attr.get_default_value_with_global_config(self)[0]
+                else:
+                    current_value = item.value
+                sig = signature(attr.reducer)
+                if 'sprite_id' in sig.parameters:
+                    value = attr.reducer(current_value, value, sprite_id=self._sprite_id)
+                else:
+                    value = attr.reducer(current_value, value)
+
             hints = self.get_type_hints()
             value_type = hints.get(name)
             if value_type is not None:
@@ -459,18 +478,9 @@ class StoreModel:
                     raise ValueError(f"Invalid value for {self.__class__.__name__}.{name}: {e}")
             else:
                 raise AttributeError(f"{self.__class__.__name__}.{name} 虽然被赋值了StoreField，但似乎没有类型注解，无法验证其类型。")
-            item = self._cache.get(name)
-            if item is not None:
-                if attr.reducer is not None:
-                    sig = signature(attr.reducer)
-                    if 'sprite_id' in sig.parameters:
-                        value = attr.reducer(item.value, value, sprite_id=self._sprite_id)
-                    else:
-                        value = attr.reducer(item.value, value)
-                item.value = value
-            else:
-                item = StoreItem(value=value)
-                self._cache[name] = item
+
+            item.value = value
+            self._cache[name] = item
             store_queue.put_nowait({'action': 'put', 'namespace': self._namespace, 'key': name, 'value': item.model_dump()})
 
     def __delattr__(self, name: str):

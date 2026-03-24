@@ -25,4 +25,4 @@ if (
 # 注意：
 # - 沙盒没有连接网络。
 # - 沙盒是无状态的，变量不会被继承到下一次调用。'''))
-CORE_TOOLS = [SpriteTool(tool) for tool in CORE_TOOLS]
+CORE_TOOLS = [tool if isinstance(tool, SpriteTool) else SpriteTool(tool) for tool in CORE_TOOLS]

@@ -435,3 +435,10 @@ class Times(BaseModel):
             real_world_time_zone=real_world_time_zone,
             sprite_time_settings=settings
         )
+
+    @classmethod
+    def from_sprite_id(cls, sprite_id: str, real_time: Optional[Union[datetime, TimestampUs, Self]] = None) -> Self:
+        """从sprite_id获取当前时间（依然需要先初始化sprite）"""
+        from sprited.store.manager import store_manager
+        time_settings = store_manager.get_settings(sprite_id).time_settings
+        return cls.from_time_settings(time_settings, real_time)
