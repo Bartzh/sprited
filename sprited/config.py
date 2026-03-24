@@ -348,9 +348,7 @@ async def load_config(plugins_with_name: dict[str, BasePlugin], sprite_ids: Opti
                 elif key == 'plugins':
                     try:
                         enabled_plugins = _plugins_validator.validate_python(value, strict=True)
-                        PluginRelation.check_relations(
-                            {k: v for k, v in plugins_with_name.items() if enabled_plugins.get(k)}
-                        )
+                        PluginRelation.check_relations(enabled_plugin_names=[k for k, v in enabled_plugins if v])
                         global_config[key] = enabled_plugins
                     except ValidationError:
                         logger.warning(f"Invalid value for {key} in global config file: expected dict[str, bool] for plugins, got {type(value)}")
@@ -407,9 +405,7 @@ async def load_config(plugins_with_name: dict[str, BasePlugin], sprite_ids: Opti
                             try:
                                 enabled_plugins = global_config.get('plugins', {}).copy()
                                 enabled_plugins.update(_plugins_validator.validate_python(value, strict=True))
-                                PluginRelation.check_relations(
-                                    {k: v for k, v in plugins_with_name.items() if enabled_plugins.get(k)}
-                                )
+                                PluginRelation.check_relations(enabled_plugin_names=[k for k, v in enabled_plugins if v])
                             except ValidationError:
                                 logger.warning(f"Invalid value for {key} in config file: expected dict[str, bool] for plugins, got {type(value)}")
                         elif key == 'init_on_startup':

@@ -206,7 +206,7 @@ class SpriteManager:
         self.plugins_with_name = plugins_with_name
 
         # 检查依赖
-        PluginRelation.check_relations(self.plugins_with_name)
+        PluginRelation.check_relations()
 
         await load_config(self.plugins_with_name)
 
@@ -1124,7 +1124,7 @@ class SpriteManager:
         if sprite_id:
             enabled_plugins = get_sprite_enabled_plugin_names(sprite_id)
             return {plugin_name: plugin for plugin_name, plugin in self.plugins_with_name.items() if plugin_name in enabled_plugins}
-        return self.plugins_with_name
+        return self.plugins_with_name.copy()
 
     def get_plugins(self, sprite_id: Optional[str] = None) -> list[BasePlugin]:
         """获取所有插件"""

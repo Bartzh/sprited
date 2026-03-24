@@ -1,17 +1,16 @@
-from typing import Callable, Union, Optional, Literal, ClassVar, Any, Self
+from typing import Callable, Union, Optional, Literal, ClassVar, Self
 from packaging.version import Version
 from packaging.specifiers import SpecifierSet
 from pydantic import BaseModel, Field, ConfigDict, field_validator, ValidationInfo
 
-from langchain_core.messages import BaseMessage, AIMessage, ToolMessage, RemoveMessage
+from langchain_core.messages import BaseMessage, AIMessage, ToolMessage
 from langchain_core.tools import BaseTool
 
-from sprited.constants import UNSET
+from sprited.constants import UNSET, PROJECT_NAME
 from sprited.types import CallSpriteRequest, DoubleTextingStrategy
 from sprited.tool import SpriteTool
 from sprited.store.base import StoreModel
 from sprited.message import add_messages
-from sprited.constants import PROJECT_NAME
 
 __all__ = [
     'BasePlugin',
@@ -285,9 +284,11 @@ class PluginPriority(BaseModel):
 
 class PluginRelation(BaseModel):
     name: str
-    """依赖插件名称"""
+    """关系插件名称"""
     specifiers: str = Field(default='')
-    """依赖插件版本规格"""
+    """关系插件版本规格"""
+    is_global: bool = Field(default=False)
+    """是否为全局关系"""
 
     @field_validator('name', mode='after')
     @classmethod
@@ -315,43 +316,56 @@ class PluginRelation(BaseModel):
             result = not result
         return result
 
-    @staticmethod
-    def check_dependencies(plugins_with_name: dict[str, 'BasePlugin']) -> None:
-        """检查所有插件的依赖是否满足
-
-        Raises:
-            ValueError: 插件依赖不满足
-        """
-        for plugin in plugins_with_name.values():
-            if hasattr(plugin, 'dependencies'):
-                for dep in plugin.dependencies:
-                    if not dep.is_relation_met(plugins_with_name):
-                        raise ValueError(f"Plugin {plugin.name} depends on {dep.name}{dep.specifiers} but "
-                                         "it is not found." if dep.name not in plugins_with_name else
-                                         f"found {dep.name}{plugins_with_name[dep.name].version}")
+    class RelationNotMetError(Exception):
+        """插件关系不满足异常"""
+        pass
 
     @staticmethod
-    def check_conflicts(plugins_with_name: dict[str, 'BasePlugin']) -> None:
-        """检查所有插件是否存在冲突
-
-        Raises:
-            ValueError: 插件存在冲突
-        """
-        for plugin in plugins_with_name.values():
-            if hasattr(plugin, 'conflicts'):
-                for conf in plugin.conflicts:
-                    if not conf.is_relation_met(plugins_with_name, is_conflict=True):
-                        raise ValueError(f"Plugin {plugin.name} conflicts with {conf.name}{conf.specifiers}")
-
-    @staticmethod
-    def check_relations(plugins_with_name: dict[str, 'BasePlugin']) -> None:
+    def check_relations(
+        relation: Literal['both', 'dependencies', 'conflicts'] = 'both',
+        sprite_id: Optional[str] = None,
+        enabled_plugin_names: Optional[list[str]] = None
+    ) -> None:
         """检查所有插件的依赖和冲突是否满足
 
+        Args:
+            relation: 检查关系类型，'both'检查依赖和冲突，'dependencies'检查依赖，'conflicts'检查冲突
+            sprite_id: 可选检查指定sprite的插件关系，将从global_config中获取已启用插件名称列表
+            enabled_plugin_names: 直接指定启用的插件名称列表，不可与sprite_id同时指定
+
         Raises:
-            ValueError: 插件依赖或冲突不满足
+            ValueError: relation参数无效
+            ValueError: sprite_id和enabled_plugin_names同时指定
+            PluginRelation.RelationNotMetError: 插件依赖或冲突不满足
         """
-        PluginRelation.check_dependencies(plugins_with_name)
-        PluginRelation.check_conflicts(plugins_with_name)
+        if relation not in ('both', 'dependencies', 'conflicts'):
+            raise ValueError(f"Invalid relation parameter: {relation}.")
+        if sprite_id and enabled_plugin_names:
+            raise ValueError(f"sprite_id and enabled_plugin_names cannot be both set.")
+        from sprited.manager import sprite_manager
+        all_plugin_with_names = sprite_manager.get_plugins_with_name()
+        plugins_with_name = sprite_manager.get_plugins_with_name(sprite_id)
+        if enabled_plugin_names:
+            plugins_with_name = {name: plugin for name, plugin in plugins_with_name.items() if name in enabled_plugin_names}
+        for plugin in plugins_with_name.values():
+            if relation in ('both', 'dependencies') and hasattr(plugin, 'dependencies'):
+                for dep in plugin.dependencies:
+                    if (
+                        (not dep.is_global and not dep.is_relation_met(plugins_with_name))
+                        or
+                        (dep.is_global and not dep.is_relation_met(all_plugin_with_names))
+                    ):
+                        raise PluginRelation.RelationNotMetError(f"Plugin {plugin.name} depends on {dep.name}{dep.specifiers} but "
+                                         "it is not found." if dep.name not in all_plugin_with_names else
+                                         f"found {dep.name}{all_plugin_with_names[dep.name].version}")
+            if relation in ('both', 'conflicts') and hasattr(plugin, 'conflicts'):
+                for conf in plugin.conflicts:
+                    if (
+                        (not conf.is_global and not conf.is_relation_met(plugins_with_name, is_conflict=True))
+                        or
+                        (conf.is_global and not conf.is_relation_met(all_plugin_with_names, is_conflict=True))
+                    ):
+                        raise PluginRelation.RelationNotMetError(f"Plugin {plugin.name} conflicts with {conf.name}{conf.specifiers}")
 
 class PluginPrompt(BaseModel):
     """插件提示"""
