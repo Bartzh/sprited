@@ -1,6 +1,6 @@
 from typing import Optional, Annotated
 from langchain.tools import tool, ToolRuntime
-from sprited.types.manager import CallSpriteRequest
+from sprited.types import CallSpriteRequest
 from sprited.store.base import StoreModel, StoreField
 from sprited.store.manager import store_manager
 from sprited.plugin import *

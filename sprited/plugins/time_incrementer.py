@@ -2,7 +2,7 @@ from typing import Literal, Optional
 from loguru import logger
 
 from sprited.plugin import *
-from sprited.types.manager import CallSpriteRequest
+from sprited.types import CallSpriteRequest
 from sprited.times import TimestampUs
 from sprited.store.base import StoreModel, StoreField
 from sprited.store.manager import store_manager

@@ -6,7 +6,7 @@ from langgraph.types import Command
 from sprited.times import Times
 from sprited.message import SpritedMsgMeta, DEFAULT_TOOL_MSG_TYPE
 from sprited.store.manager import store_manager
-from sprited.types.manager import CallSpriteRequest
+from sprited.types import CallSpriteRequest
 
 
 SEND_MESSAGE = "send_message"

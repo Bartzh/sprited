@@ -5,7 +5,7 @@ from langchain.tools import tool, ToolRuntime
 from sprited.times import Times
 from sprited.message import SpritedMsgMeta, DEFAULT_TOOL_MSG_TYPE
 from sprited.store.manager import store_manager
-from sprited.types.manager import CallSpriteRequest
+from sprited.types import CallSpriteRequest
 
 RECORD_THOUGHTS = "record_thoughts"
 RECORD_THOUGHTS_CONTENT = "content"

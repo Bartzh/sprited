@@ -23,7 +23,7 @@ from langchain_core.messages import (
 from langgraph.graph.message import _add_messages_wrapper, _format_messages, Messages, REMOVE_ALL_MESSAGES
 from sprited.times import Times, format_time
 from sprited.utils import to_json_like_string, deep_dict_update, exclude_none_in_dict
-from sprited.names import PROJECT_NAME
+from sprited.constants import PROJECT_NAME
 from sprited.store.manager import store_manager
 
 SPRITED_MESSAGE_METADATA_KEY = PROJECT_NAME

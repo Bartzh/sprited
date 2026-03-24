@@ -7,7 +7,7 @@ from sprited.times import Times, format_time, format_duration, TimestampUs
 from sprited.message import DictMsgMeta
 from sprited.scheduler import Schedule, get_schedules
 from sprited.store.manager import store_manager
-from sprited.types.manager import CallSpriteRequest
+from sprited.types import CallSpriteRequest
 from sprited.plugin import BasePlugin
 from sprited.manager import sprite_manager
 

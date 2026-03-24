@@ -2,13 +2,16 @@ from typing import Callable, Union, Optional, Literal, ClassVar, Any, Self
 from packaging.version import Version
 from packaging.specifiers import SpecifierSet
 from pydantic import BaseModel, Field, ConfigDict, field_validator, ValidationInfo
+
 from langchain_core.messages import BaseMessage, AIMessage, ToolMessage, RemoveMessage
 from langchain_core.tools import BaseTool
-from sprited.types.manager import CallSpriteRequest, DoubleTextingStrategy
+
+from sprited.constants import UNSET
+from sprited.types import CallSpriteRequest, DoubleTextingStrategy
 from sprited.tool import SpriteTool
 from sprited.store.base import StoreModel
 from sprited.message import add_messages
-from sprited.names import PROJECT_NAME
+from sprited.constants import PROJECT_NAME
 
 __all__ = [
     'BasePlugin',
@@ -77,9 +80,6 @@ class ChangeableField[T](BaseModel):
                 plugin_name=plugin_name
             )],
         })
-
-
-UNSET = object()
 
 
 

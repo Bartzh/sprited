@@ -14,8 +14,7 @@ from langchain_core.messages.utils import count_tokens_approximately
 
 from langchain_dev_utils.chat_models import load_chat_model
 
-from sprited.types.main import InterruptData, MainState
-from sprited.types.manager import CallSpriteRequest, DoubleTextingStrategy, SpriteOutput
+from sprited.types import InterruptData, MainState, CallSpriteRequest, DoubleTextingStrategy, SpriteOutput
 from sprited.graphs.base import StateMerger
 from sprited.graphs.main import MainGraph, SEND_MESSAGE_TOOL_CONTENT
 from sprited.config import load_config, get_init_on_startup_sprite_ids, get_sprite_enabled_plugin_names

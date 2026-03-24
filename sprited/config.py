@@ -12,7 +12,7 @@ from sprited.utils import dump_basemodels, get_readable_type_name, to_json_like_
 from sprited.store.base import StoreModel, StoreField, store_alist_namespaces, store_abatch
 from sprited.store.settings import SpritedSettings
 from sprited.plugin import BasePlugin, PluginRelation
-from sprited.names import PROJECT_NAME
+from sprited.constants import PROJECT_NAME
 
 SPRITES_FILE_PATH = "./config/sprites"
 SPRITE_COMMENTS_FILE_PATH = "./config/sprite_comments.toml"

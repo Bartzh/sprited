@@ -1,3 +1,4 @@
+from typing import Literal, Any, Iterable, Optional, Self, Union, Callable, get_type_hints
 import asyncio
 from copy import deepcopy
 from dataclasses import dataclass
@@ -19,8 +20,10 @@ from pydantic import (
     create_model,
     ConfigDict,
 )
-from pydantic_core import ValidationError, core_schema
-from typing import Literal, Any, Iterable, Optional, Self, Union, Callable, get_type_hints
+from pydantic_core import ValidationError
+
+from sprited.constants import UNSET, UnsetType
+
 
 STORE_PATH = './data/store.sqlite'
 
@@ -181,35 +184,11 @@ async def store_stop_listener():
     listener_task = None
 
 
-class UnsetType:
-
-    def __bool__(self) -> bool:
-        return False
-
-    def __repr__(self) -> str:
-        return "Unset"
-
-    def __copy__(self) -> Self:
-        return self
-
-    def __deepcopy__(self) -> Self:
-        return self
-
-    @classmethod
-    def __get_pydantic_core_schema__(cls, source_type: Any, handler: Any):
-        return core_schema.is_instance_schema(cls
-            #serialization=core_schema.plain_serializer_function_ser_schema(lambda x: None)
-        )
-
-    def is_unset(self, value: Any) -> bool:
-        return value is self
-
-Unset = UnsetType()
 
 class StoreField(BaseModel):
     title: Optional[str] = Field(default=None)
     description: Optional[str] = Field(default=None)
-    default: Union[Any, UnsetType] = Field(default=Unset)
+    default: Union[Any, UnsetType] = Field(default=UNSET)
     default_factory: Optional[Callable[[], Any]] = Field(default=None)
     reducer: Optional[Callable[[Any, Any], Any]] = Field(default=None)
     frozen: bool = Field(default=False)
@@ -224,9 +203,9 @@ class StoreField(BaseModel):
     @field_validator('default_factory', mode='after')
     @classmethod
     def validate_default_factory(cls, value: Optional[Callable[[], Any]], info: ValidationInfo) -> Optional[Callable[[], Any]]:
-        if value is None and info.data['default'] is Unset:
+        if value is None and info.data['default'] is UNSET:
             raise ValueError("default_factory 或 default 必须设置一个。")
-        if value is not None and info.data['default'] is not Unset:
+        if value is not None and info.data['default'] is not UNSET:
             raise ValueError("default_factory 不能与 default 同时设置。")
         return value
 
@@ -252,7 +231,7 @@ class StoreField(BaseModel):
     def get_default_value(self) -> Any:
         if self.default_factory is not None:
             return self.default_factory()
-        elif self.default is not Unset:
+        elif self.default is not UNSET:
             return self.default
         else:
             raise AttributeError(f"{self._owner.__name__}的{self._attribute_name}没有设置默认值。")
@@ -271,13 +250,13 @@ class StoreField(BaseModel):
                 for key in namespace[4:]:
                     value = value.get(key)
                     if not isinstance(value, dict):
-                        value = Unset
+                        value = UNSET
                         break
                 if isinstance(value, dict):
-                    value = value.get(self._attribute_name, Unset)
+                    value = value.get(self._attribute_name, UNSET)
             else:
-                value = Unset
-            if value is not Unset:
+                value = UNSET
+            if value is not UNSET:
                 type_hints = self._owner.get_type_hints()
                 if self._attribute_name in type_hints:
                     try:
@@ -290,9 +269,9 @@ class StoreField(BaseModel):
         return self.get_default_value(), False
 
 class StoreItem(BaseModel):
-    title: Optional[Union[str, UnsetType]] = Field(default=Unset, exclude_if=Unset.is_unset)
-    description: Optional[Union[str, UnsetType]] = Field(default=Unset, exclude_if=Unset.is_unset)
-    value: Union[Any, UnsetType] = Field(default=Unset, exclude_if=Unset.is_unset)
+    title: Optional[Union[str, UnsetType]] = Field(default=UNSET, exclude_if=UNSET.is_unset)
+    description: Optional[Union[str, UnsetType]] = Field(default=UNSET, exclude_if=UNSET.is_unset)
+    value: Union[Any, UnsetType] = Field(default=UNSET, exclude_if=UNSET.is_unset)
 
 @dataclass
 class SimpleItem:
@@ -364,7 +343,7 @@ class StoreModel:
         for item in items:
             # 没有允许意外的key存进_cache
             if item.namespace == self_namespace and item.key in type_hints.keys():
-                if item.value.get('value', Unset) is not Unset:
+                if item.value.get('value', UNSET) is not UNSET:
                     try:
                         adapter = TypeAdapter(type_hints[item.key])
                         value = adapter.validate_python(item.value['value'])
@@ -387,14 +366,14 @@ class StoreModel:
                                 new_value['value'] = value
                                 store_queue.put_nowait({'action': 'put', 'namespace': self_namespace, 'key': item.key, 'value': new_value})
                             else:
-                                value = Unset
+                                value = UNSET
                         else:
                             value = field.get_default_value()
                     else:
-                        value = Unset
+                        value = UNSET
                 cached[item.key] = StoreItem(
-                    title=item.value.get('title', Unset),
-                    description=item.value.get('description', Unset),
+                    title=item.value.get('title', UNSET),
+                    description=item.value.get('description', UNSET),
                     value=value
                 )
             else:
@@ -426,7 +405,7 @@ class StoreModel:
             if item is None:
                 item = StoreItem()
             value = item.value
-            if value is Unset:
+            if value is UNSET:
                 if not self._frozen:
                     value, is_global = attr.get_default_value_with_global_config(self)
                     # 如果是default_factory生成的默认值，则保存到store中
@@ -458,7 +437,7 @@ class StoreModel:
             if item is None:
                 item = StoreItem()
             if attr.reducer is not None:
-                if item.value is Unset:
+                if item.value is UNSET:
                     current_value = attr.get_default_value_with_global_config(self)[0]
                 else:
                     current_value = item.value
@@ -573,7 +552,7 @@ class StoreModel:
                 field_def = cls.__dict__.get(field_name)
                 if isinstance(field_def, StoreField):
                     field_kwargs = {}
-                    if field_def.default is not Unset:
+                    if field_def.default is not UNSET:
                         field_kwargs['default'] = field_def.default
                     if field_def.default_factory is not None:
                         field_kwargs['default_factory'] = field_def.default_factory

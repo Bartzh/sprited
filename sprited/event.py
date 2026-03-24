@@ -3,7 +3,7 @@ from weakref import WeakMethod
 from inspect import iscoroutinefunction
 from loguru import logger
 from sprited.utils import filter_kwargs
-from sprited.names import PROJECT_NAME
+from sprited.constants import PROJECT_NAME
 
 ON_SPRITE_OUTPUT_EVENT = PROJECT_NAME + ':on_sprite_output'
 

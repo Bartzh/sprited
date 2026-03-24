@@ -4,7 +4,7 @@ from datetime import date
 
 from sprited.times import SpriteTimeSettings, Times, TimestampUs
 from sprited.store.base import StoreField, StoreModel
-from sprited.names import PROJECT_NAME
+from sprited.constants import PROJECT_NAME
 
 
 # 新想法，通过结构化然后让AI生成所有没有指定的细节
