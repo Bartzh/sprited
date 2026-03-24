@@ -85,7 +85,21 @@ def parse_env_array(env_array: Optional[str]) -> list[str]:
     else:
         return []
 
-def to_json_like_string(a: Any, support_multiline_str: bool = False) -> str:
+def add_indent(text: str, indent: int = 4) -> str:
+    """添加缩进"""
+    return textwrap.indent(
+        text,
+        ' '*indent,
+        predicate=lambda line: line.strip() != ''
+    )
+
+def to_json_like_string(
+    a: Any,
+    /,
+    *,
+    indent: int = 4,
+    support_multiline_str: bool = False
+) -> str:
     """将任意对象转换为JSON-like字符串
 
     具体来说，实现了对字符串、布尔值、None、元组、列表、字典的转换"""
@@ -99,11 +113,7 @@ def to_json_like_string(a: Any, support_multiline_str: bool = False) -> str:
         return 'null'
     elif isinstance(a, (tuple, list, set)):
         if len(a) >= 3:
-            return '[\n' + textwrap.indent(
-                ',\n'.join([to_json_like_string(i) for i in a]),
-                '    ',
-                predicate=lambda line: line.strip() != ''
-            ) + '\n]'
+            return '[\n' + add_indent(',\n'.join([to_json_like_string(i) for i in a]), indent) + '\n]'
         else:
             return '[' + ', '.join([to_json_like_string(i) for i in a]) + ']'
     elif isinstance(a, (BaseModel, dict)):
@@ -111,11 +121,7 @@ def to_json_like_string(a: Any, support_multiline_str: bool = False) -> str:
             a = a.model_dump()
         if not a:
             return '{}'
-        return '{\n' + textwrap.indent(
-            ',\n'.join(f'"{k}": {to_json_like_string(v)}' for k, v in a.items()),
-            '    ',
-            predicate=lambda line: line.strip() != ''
-        ) + '\n}'
+        return '{\n' + add_indent(',\n'.join(f'"{k}": {to_json_like_string(v)}' for k, v in a.items()), indent) + '\n}'
     else:
         return str(a)
 
