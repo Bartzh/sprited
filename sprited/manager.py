@@ -60,8 +60,15 @@ class SpriteManager:
     on_heartbeat_finished: asyncio.Event
     on_trigger_sprites_finished: asyncio.Event
 
-    chat_model: BaseChatModel
-    structured_model: BaseChatModel
+    sprite_model: BaseChatModel
+    sprite_model_thinking: BaseChatModel
+    max_model: BaseChatModel
+    max_model_thinking: BaseChatModel
+    plus_model: BaseChatModel
+    plus_model_thinking: BaseChatModel
+    flash_model: BaseChatModel
+    flash_model_thinking: BaseChatModel
+
     main_graph: MainGraph
     main_graph_state_merger: StateMerger
     # 存储所有正在运行的call_sprite_and_wait任务，用于在close时处理未完成的任务
@@ -162,7 +169,7 @@ class SpriteManager:
     async def init_manager(self, plugins: Optional[list[Union[type[BasePlugin], BasePlugin]]] = None, heartbeat_interval: float = 5.0):
         logger.info("Initializing sprite manager...")
 
-        req_envs = ["CHAT_MODEL_NAME", "STRUCTURED_MODEL_NAME"]
+        req_envs = ["SPRITE_MODEL_NAME"]
         for e in req_envs:
             if not os.getenv(e):
                 raise Exception(f"{e} is not set")
@@ -227,66 +234,74 @@ class SpriteManager:
                     raise ValueError(f"Plugin {name} data namespace {plugin.data._namespace} is duplicated.")
 
 
-        def create_model(model_name: str, enable_thinking: bool = False):
-            splited_model_name = model_name.split(':', 1)
-            if len(splited_model_name) != 2:
-                raise ValueError(f"Invalid model name: {model_name}")
-            else:
-                provider = splited_model_name[0]
-                model = splited_model_name[1]
-            kwargs = {}
-            if (
-                'deepseek-v3.2' in model or
-                'glm' in model or
-                'kimi-k2.5' in model
-            ):
-                kwargs['reasoning_keep_policy'] = 'current'
-            elif 'mimo-v2-flash' in model:
-                kwargs['reasoning_keep_policy'] = 'all'
-            if provider == 'dashscope':
-                if model.startswith(('qwen-', 'qwen3-')):
-                    return ChatQwen(
-                        model=model,
-                        enable_thinking=enable_thinking
-                    )
-                elif model.startswith(('qwq-', 'qvq-')):
-                    return ChatQwQ(
-                        model=model
-                    )
+        def create_model(prefix: str) -> Optional[tuple[BaseChatModel, BaseChatModel]]:
+            prefix = prefix.upper()
+            model_name = os.getenv(f"{prefix}_MODEL_NAME", "")
+            if not model_name:
+                return None
+            def _create(model_name: str, enable_thinking: bool):
+                splited_model_name = model_name.split(':', 1)
+                if len(splited_model_name) != 2:
+                    raise ValueError(f"Invalid model name: {model_name}")
                 else:
-                    if enable_thinking:
-                        kwargs['extra_body'] = {"enable_thinking": True}
-                    return load_chat_model(
-                        model=model_name,
-                        **kwargs,
-                    )
-            if provider == 'openrouter':
-                kwargs['extra_body'] = {'reasoning': {'enabled': enable_thinking}}
-            else:
-                kwargs['extra_body'] = {"thinking": {"type": "enabled" if enable_thinking else "disabled"}}
-            return load_chat_model(
-                model=model_name,
-                **kwargs
-            )
+                    provider = splited_model_name[0]
+                    model = splited_model_name[1]
+                kwargs = {}
+                if (
+                    'deepseek-v3.2' in model or
+                    'glm' in model or
+                    'kimi-k2.5' in model
+                ):
+                    kwargs['reasoning_keep_policy'] = 'current'
+                elif 'mimo-v2' in model and model != 'mimo-v2-tts':
+                    kwargs['reasoning_keep_policy'] = 'all'
+                if provider == 'dashscope':
+                    if model.startswith(('qwen-', 'qwen3-')):
+                        return ChatQwen(
+                            model=model,
+                            enable_thinking=enable_thinking
+                        )
+                    elif model.startswith(('qwq-', 'qvq-')):
+                        return ChatQwQ(
+                            model=model
+                        )
+                    else:
+                        if enable_thinking:
+                            kwargs['extra_body'] = {"enable_thinking": True}
+                        return load_chat_model(
+                            model=model_name,
+                            **kwargs,
+                        )
+                if provider == 'openrouter':
+                    kwargs['extra_body'] = {'reasoning': {'enabled': enable_thinking}}
+                else:
+                    kwargs['extra_body'] = {"thinking": {"type": "enabled" if enable_thinking else "disabled"}}
+                return load_chat_model(
+                    model=model_name,
+                    **kwargs
+                )
+            return _create(model_name, False), _create(model_name, True)
 
-        chat_enable_thinking = os.getenv("CHAT_MODEL_ENABLE_THINKING", '').lower()
-        if chat_enable_thinking == "true":
-            chat_enable_thinking = True
-        else:
-            chat_enable_thinking = False
-        self.chat_model = create_model(os.getenv("CHAT_MODEL_NAME", ""), chat_enable_thinking)
+        self.sprite_model, self.sprite_model_thinking = create_model("sprite") or (None, None)
+        if self.sprite_model is None:
+            raise Exception("至少需在环境变量中正确配置sprite模型！")
+        if self.sprite_model_thinking is None:
+            self.sprite_model_thinking = self.sprite_model
 
-        structured_enable_thinking = os.getenv("STRUCTURED_MODEL_ENABLE_THINKING", '').lower()
-        if structured_enable_thinking == "true":
-            structured_enable_thinking = True
-        else:
-            structured_enable_thinking = False
-        self.structured_model = create_model(os.getenv("STRUCTURED_MODEL_NAME", ""), structured_enable_thinking)
+        self.max_model, self.max_model_thinking = create_model("max") or (self.sprite_model, self.sprite_model_thinking)
+        if self.max_model_thinking is None:
+            self.max_model_thinking = self.max_model
+        self.plus_model, self.plus_model_thinking = create_model("plus") or (self.max_model, self.max_model_thinking)
+        if self.plus_model_thinking is None:
+            self.plus_model_thinking = self.plus_model
+        self.flash_model, self.flash_model_thinking = create_model("flash") or (self.plus_model, self.plus_model_thinking)
+        if self.flash_model_thinking is None:
+            self.flash_model_thinking = self.flash_model
 
+        sprite_model_enable_thinking = os.getenv("SPRITE_MODEL_ENABLE_THINKING", "").lower() == "true"
         self.main_graph = await MainGraph.create(
-            llm=self.chat_model,
-            plugins_with_name=self.plugins_with_name,
-            llm_for_structured_output=self.structured_model)
+            llm=self.sprite_model_thinking if sprite_model_enable_thinking else self.sprite_model,
+            plugins_with_name=self.plugins_with_name)
         self.main_graph_state_merger = StateMerger(MainState)
 
         for plugin in self.plugins_with_name.values():

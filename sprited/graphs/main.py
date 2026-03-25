@@ -53,7 +53,6 @@ class StreamingTools:
 class MainGraph(BaseGraph):
 
     llm: BaseChatModel
-    llm_for_structured_output: BaseChatModel
     plugins_with_name: dict[str, BasePlugin]
     plugin_tools: dict[str, list[SpriteTool]]
     streaming_tools: StreamingTools
@@ -73,7 +72,6 @@ class MainGraph(BaseGraph):
         self,
         llm: BaseChatModel,
         plugins_with_name: Optional[dict[str, BasePlugin]] = None,
-        llm_for_structured_output: Optional[BaseChatModel] = None
     ):
         super().__init__()
         self.llm = llm
@@ -81,8 +79,6 @@ class MainGraph(BaseGraph):
         tools_plugins = [(name, plugin) for name, plugin in self.plugins_with_name.items() if hasattr(plugin, 'tools')]
         self.plugin_tools = {name: [t if isinstance(t, SpriteTool) else SpriteTool(t) for t in plugin.tools] for name, plugin in tools_plugins}
 
-        if llm_for_structured_output is None:
-            self.llm_for_structured_output = self.llm
         self.streaming_tools = StreamingTools()
         self.sprite_run_ids = {}
         self.sprite_last_run_ids = {}
@@ -118,9 +114,8 @@ class MainGraph(BaseGraph):
         cls,
         llm: BaseChatModel,
         plugins_with_name: Optional[dict[str, BasePlugin]] = None,
-        llm_for_structured_output: Optional[BaseChatModel] = None
     ):
-        instance = cls(llm, plugins_with_name, llm_for_structured_output)
+        instance = cls(llm, plugins_with_name)
         instance.conn = await aiosqlite.connect("./data/checkpoints_main.sqlite")
         instance.graph = instance.graph_builder.compile(checkpointer=AsyncSqliteSaver(instance.conn))
         return instance
