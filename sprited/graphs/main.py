@@ -234,7 +234,7 @@ class MainGraph(BaseGraph):
         enabled_plugin_tools = [tool for tools in enabled_plugin_tools for tool in tools]
         tool_schemas = [tool.get_schema(sprite_id) for tool in CORE_TOOLS + enabled_plugin_tools]
         tool_schemas = [schema for schema in tool_schemas if schema]
-        llm_with_tools = self.llm.bind_tools(tool_schemas, tool_choice=RECORD_THOUGHTS, parallel_tool_calls=True)
+        llm_with_tools = self.llm.bind_tools(tool_schemas, parallel_tool_calls=True)
 
         core_prompts: list[PluginPrompt] = []
         secondary_prompts: list[PluginPrompt] = []

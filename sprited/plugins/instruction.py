@@ -27,6 +27,7 @@ class InstructionPlugin(BasePlugin):
     name = NAME
     config = InstructionConfig
     data = InstructionData
+    priority = PluginPriority(phase='late')
 
     async def on_sprite_init(self, sprite_id: str, /) -> None:
         data_store = store_manager.get_model(sprite_id, InstructionData)
