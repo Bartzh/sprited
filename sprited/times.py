@@ -210,6 +210,27 @@ class SpriteTimeSettings(BaseModel):
         sprite_time = self.subjective_sprite_anchor + (real_timestampus - self.subjective_real_anchor) * self.subjective_scale
         return int(sprite_time)
 
+    def to_real_datetime(self, sprite_time: Union[datetime, TimestampUs, int]) -> datetime:
+        """将sprite时间转换为真实世界时间datetime
+
+        若sprite_time为int，则将其视为sprite主观tick
+
+        返回真实世界UTC时间datetime
+
+        这个操作很可能不准确，应尽量避免使用，特别是需要精确比较的情况"""
+        if type(sprite_time) is int:
+            sprite_anchor = self.subjective_sprite_anchor
+            sprite_scale = self.subjective_scale
+        else:
+            sprite_anchor = self.world_sprite_anchor
+            sprite_scale = self.world_scale
+            sprite_time = TimestampUs(sprite_time)
+        if abs(sprite_scale) < 1e-6:
+            # 世界时间膨胀为0，直接返回锚点时间
+            return self.world_real_anchor.to_datetime()
+        real_time = self.world_real_anchor + (sprite_time - sprite_anchor) / sprite_scale
+        return real_time.to_datetime()
+
     def add_offset_from_now(self, delta: Union[int, timedelta], time_type: Literal['world', 'subjective']) -> Self:
         """从现在开始为sprite世界时间或主观tick添加时间偏移
 
@@ -411,7 +432,11 @@ class Times(BaseModel):
         return self.sprite_time_settings.to_subjective_tick(self.real_world_timestampus)
 
     @classmethod
-    def from_time_settings(cls, settings: SpriteTimeSettings, real_time: Optional[Union[datetime, TimestampUs, Self]] = None) -> Self:
+    def from_time_settings(
+        cls,
+        settings: SpriteTimeSettings,
+        real_time: Optional[Union[datetime, TimestampUs, Self, int]] = None,
+    ) -> Self:
         """旨在需要两个以上的时间种类时方便地完成各类型时间的转换
 
         通过提供现实时间datetime、TimestampUs或Times（或留空取当前时间，本地时区）快速获取其他种类时间
@@ -437,7 +462,11 @@ class Times(BaseModel):
         )
 
     @classmethod
-    def from_sprite_id(cls, sprite_id: str, real_time: Optional[Union[datetime, TimestampUs, Self]] = None) -> Self:
+    def from_sprite_id(
+        cls,
+        sprite_id: str,
+        real_time: Optional[Union[datetime, TimestampUs, Self]] = None,
+    ) -> Self:
         """从sprite_id获取当前时间（依然需要先初始化sprite）"""
         from sprited.store.manager import store_manager
         time_settings = store_manager.get_settings(sprite_id).time_settings

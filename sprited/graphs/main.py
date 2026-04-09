@@ -258,8 +258,7 @@ class MainGraph(BaseGraph):
 
         unicode_prompt = '- 不要使用 Unicode 编码，所有工具均支持中文及其他语言直接输入，使用 Unicode 编码会导致输出速度下降。'
         thought_prompt = '- 也因此，在`content`也就是正常的输出内容中，你可以自由地进行推理（思维链），制定计划，评估工具调用结果等。又或者如果你有什么想记下来给未来的自己看的，也可以放在这里。但请记住，就如刚才所说，除你自己之外没人看得到这些内容。'
-        parsed_character_settings = store_settings.format_character_settings()
-        role_prompt = f'## 基本信息：\n{parsed_character_settings if parsed_character_settings.strip() else '无'}\n\n## 详细设定：\n{store_settings.role_prompt}'
+        role_prompt = f'## 角色提示：\n{store_settings.role_prompt}'
         if role_prompts:
             role_prompt += '\n\n' + '\n\n'.join(f'## {p.title}\n\n{p.content}' for p in role_prompts)
         role_prompt_with_state = f'''{role_prompt}
