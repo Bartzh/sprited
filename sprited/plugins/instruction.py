@@ -48,6 +48,10 @@ class InstructionPlugin(BasePlugin):
                     current_times
                 )
                 if config_store.react_instruction:
+                    await sprite_manager.publish_sprite_log(
+                        sprite_id=sprite_id,
+                        log='开始生成开场白，请稍等'
+                    )
                     await sprite_manager.call_sprite_for_system(
                         sprite_id,
                         instruction_message.text,

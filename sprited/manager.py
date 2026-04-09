@@ -14,7 +14,7 @@ from langchain_core.messages.utils import count_tokens_approximately
 
 from langchain_dev_utils.chat_models import load_chat_model
 
-from sprited.types import InterruptData, MainState, CallSpriteRequest, DoubleTextingStrategy, SpriteOutput
+from sprited.types import InterruptData, MainState, CallSpriteRequest, DoubleTextingStrategy
 from sprited.graphs.base import StateMerger
 from sprited.graphs.main import MainGraph, SEND_MESSAGE_TOOL_CONTENT
 from sprited.config import load_config, get_init_on_startup_sprite_ids, get_sprite_enabled_plugin_names
@@ -498,14 +498,10 @@ class SpriteManager:
             if is_admin:
                 await self.command_processing(sprite_id, extracted_message[0])
             else:
-                await self.publish_sprite_output(
-                    SpriteOutput(
-                        sprite_id=sprite_id,
-                        id="command-" + str(uuid4()),
-                        extra_kwargs={
-                            'log': '无权限执行此命令'
-                        }
-                    )
+                await self.publish_sprite_log(
+                    sprite_id=sprite_id,
+                    id="command-" + str(uuid4()),
+                    log='无权限执行此命令'
                 )
         else:
             await self.call_sprite_for_user(
@@ -1014,11 +1010,11 @@ class SpriteManager:
                                     if new_message:
                                         # 对于event来说名字固定为send_message
                                         #await self.event_queue.put({"sprite_id": sprite_id, "name": "send_message", "args": {"content": new_message.replace(last_message, '', 1)}, "not_completed": True})
-                                        event_item = SpriteOutput(sprite_id=sprite_id, method="send_message", params={"content": new_message}, id=tool_call_id)
+                                        event_item = {'sprite_id': sprite_id, 'method': "send_message", 'params': {"content": new_message}, 'id': tool_call_id}
                                         # 暂时用来给app的通知服务使用，如果是自我调用就推送通知
-                                        event_item.extra_kwargs["is_self_call"] = kwargs.get("is_self_call", False)
+                                        event_item["is_self_call"] = kwargs.get("is_self_call", False)
                                         if not chunk_completed:
-                                            event_item.extra_kwargs["not_completed"] = True
+                                            event_item["not_completed"] = True
                                         else:
                                             if tool_calls[tool_index].get('id'):
                                                 now_times = Times.from_time_settings(store_settings.time_settings)
@@ -1032,7 +1028,7 @@ class SpriteManager:
                                                 )))
                                                 self._sprite_interrupt_datas[sprite_id]["called_tool_messages"] = streaming_tool_messages
                                             last_message = ''
-                                        await self.publish_sprite_output(event_item)
+                                        await self.publish_sprite_output(**event_item)
                                         #print(new_message.replace(last_message, '', 1), end="", flush=True)
                                         last_message = new_message
 
@@ -1060,12 +1056,12 @@ class SpriteManager:
                                         except Exception:
                                             logger.exception(f"calling streaming_tool {tool_calls[tool_index]['name']} failed")
                                     if tool_calls[tool_index]['name'] != SEND_MESSAGE:
-                                        await self.publish_sprite_output(SpriteOutput(
+                                        await self.publish_sprite_output(
                                             sprite_id=sprite_id,
                                             method=tool_calls[tool_index]['name'],
                                             params=tool_calls[tool_index]['args'],
                                             id=tool_call_id
-                                        ))
+                                        )
                                         #print(await method(tool_calls[tool_index]['args']), flush=True)
                                     tool_index += 1
                                     loop_once = True
@@ -1242,16 +1238,42 @@ class SpriteManager:
 
     @staticmethod
     async def publish_sprite_output(
-        output: SpriteOutput
+        *,
+        sprite_id: str,
+        method: Optional[str] = None,
+        params: Optional[dict] = None,
+        id: Optional[str] = None,
+        **kwargs
     ):
         """发布sprite输出事件"""
         await event_bus.publish(
             ON_SPRITE_OUTPUT_EVENT,
-            sprite_id=output.sprite_id,
-            method=output.method,
-            params=output.params,
-            id=output.id,
-            **output.extra_kwargs
+            sprite_id=sprite_id,
+            method=method or '',
+            params=params or {},
+            id=id if id else str(uuid4()),
+            **kwargs
+        )
+
+    @staticmethod
+    async def publish_sprite_log(
+        *,
+        sprite_id: str,
+        log: str,
+        id: Optional[str] = None,
+        **kwargs
+    ):
+        """发布sprite日志
+
+        等价于在publish_sprite_output中添加log参数"""
+        await event_bus.publish(
+            ON_SPRITE_OUTPUT_EVENT,
+            sprite_id=sprite_id,
+            method=kwargs.pop('method', ''),
+            params=kwargs.pop('params', {}),
+            log=log,
+            id=id if id else str(uuid4()),
+            **kwargs
         )
 
 
@@ -1482,14 +1504,10 @@ config: 仅重置配置（settings）
             return '无效命令。'
 
         message = await _command_processing(sprite_id, user_input)
-        await self.publish_sprite_output(
-            SpriteOutput(
-                sprite_id=sprite_id,
-                id='command-' + str(uuid4()),
-                extra_kwargs={
-                    'log': message
-                }
-            )
+        await self.publish_sprite_log(
+            sprite_id=sprite_id,
+            id='command-' + str(uuid4()),
+            log=message
         )
 
 
