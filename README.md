@@ -1,7 +1,8 @@
 # sprited
 
 这是一个基于[langchain](https://github.com/langchain-ai/langchain)&[langgraph](https://github.com/langchain-ai/langgraph)（类似其中的`create_agent`+ middleware）的功能几乎完全由插件驱动的agent系统，实现了：
-- 创建自定义模型实现持久化
+- 对double-texting的处理，包括merge、interrupt、enqueue、reject四种模式
+- 创建自定义模型实现持久化存储
 - 调度计划任务
 - 消息元数据
 - 事件总线
