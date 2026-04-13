@@ -18,4 +18,4 @@ jobs:
       - name: 构建并部署
         run: mkdocs gh-deploy --force
         env:
-          GITHUB_TOKEN: ${{ secrets.DEPLOY_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
