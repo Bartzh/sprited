@@ -35,6 +35,8 @@ dev = [
     "ipykernel>=7.1.0",
     "ipympl>=0.9.8",
     "matplotlib>=3.10.8",
+    "mkdocs>=1.6.1",
+    "mkdocs-material>=9.7.6",
     "pytest>=9.0.2",
 ]
 

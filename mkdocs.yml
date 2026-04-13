@@ -1,0 +1,19 @@
+site_name: sprited 文档
+theme:
+  name: material
+  language: zh
+  features:
+    - navigation.tabs
+    - search.suggest
+    - search.highlight
+nav:
+  - 首页: README.md
+  - 插件定义: plugin.md
+  - 模块介绍:
+    - manager: manager.md
+    - store: store.md
+    - message: message.md
+    - scheduler: scheduler.md
+    - event: event.md
+    - times: times.md
+    - tool: tool.md
