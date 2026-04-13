@@ -6,6 +6,21 @@ theme:
     - navigation.tabs
     - search.suggest
     - search.highlight
+    - content.code.copy
+    - content.code.select
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: 'orange'
+      toggle:
+        icon: material/weather-sunny
+        name: 切换到暗色模式
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: 'orange'
+      toggle:
+        icon: material/weather-night
+        name: 切换到亮色模式
 nav:
   - 首页: README.md
   - 插件定义: plugin.md
@@ -17,3 +32,18 @@ nav:
     - event: event.md
     - times: times.md
     - tool: tool.md
+markdown_extensions:
+  - pymdownx.superfences:
+  - pymdownx.inlinehilite:
+  - pymdownx.snippets:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      linenums: true
+      use_pygments: true
+      pygments_lang_class: true
+      auto_title: true
+      linenums_style: pymdownx-inline
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.arithmatex:
+      generic: true
