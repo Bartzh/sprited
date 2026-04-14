@@ -121,18 +121,18 @@ class NotePlugin(BasePlugin):
 
     @override
     async def before_call_model(self, request: CallSpriteRequest, info: BeforeCallModelInfo, /) -> None:
-        if 'bh_memory' in sprite_manager.get_plugin_names(request.sprite_id):
-            self.prompts = PluginPrompts(
-                secondary=PluginPrompt(
-                    title="笔记系统",
-                    content='''俗话说好记性不如烂笔头，尽管你已经有了一个记忆系统，但笔记依然是很有用的东西。
+        content = '用来让你能够记一些自己想要记下来的东西。使用`write_note`来写入笔记，使用`list_notes`来列出所有笔记的标题，使用`read_note`来读取具体的笔记内容。删除笔记时，使用`delete_note`。'
+        if sprite_manager.is_plugin_enabled('bh_memory', request.sprite_id):
+            content += '''\n俗话说好记性不如烂笔头，尽管你已经有了一个记忆系统，但笔记依然是很有用的东西。
 相比起记忆，笔记的优点是永久保存，可修改，不会遗忘。
 缺点是无法向量检索，只能先通过`list_notes`来查询所有笔记的标题，然后通过`read_note`来读取具体的笔记内容。
 所以，虽然它不会被遗忘，但也没有记忆那么灵活，如果滥用容易变得杂乱无章，你应该：
 - 用它来记录那些易于管理，会有明确的时机去修改或删除的内容（防止笔记越来越多越来越乱）
 - 用它来记录那些真正重要的，你无论如何都不想忘掉的东西
 - 在角色扮演中以上两点也许更容易理解，结合你的角色设定与当下场景思考：什么事是我想认真拿笔记下来的？什么事是我懒得用笔记只想在脑子里过一下的？'''
-                )
+        self.prompts = PluginPrompts(
+            secondary=PluginPrompt(
+                title="笔记系统",
+                content=content
             )
-        else:
-            self.prompts = PluginPrompts()
+        )

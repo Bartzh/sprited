@@ -194,6 +194,12 @@ class SpriteTimeSettings(BaseModel):
             return int(v)
         return v
 
+    def is_world_time_identity(self) -> bool:
+        """判断sprite世界时间是否与真实世界时间完全一致，1:1映射，无时间膨胀/收缩"""
+        if self.world_scale != 1:
+            return False
+        return self.world_real_anchor == self.world_sprite_anchor
+
     def to_world_datetime(self, real_time: Optional[Union[datetime, TimestampUs]] = None) -> datetime:
         """将真实世界时间转换为sprite时间datetime
 
