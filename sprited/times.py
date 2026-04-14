@@ -180,6 +180,8 @@ class SpriteTimeSettings(BaseModel):
 
     time_zone: SerializableTimeZone = Field(default_factory=SerializableTimeZone.from_local, description="sprite时区")
 
+    model_config = ConfigDict(validate_assignment=True)
+
     @field_validator('world_scale', mode='after')
     def validate_world_scale(cls, v: Union[float, int]) -> Union[float, int]:
         if isinstance(v, float) and v.is_integer():
