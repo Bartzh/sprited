@@ -30,7 +30,7 @@ dependencies = [
     "bcrypt>=5.0.0",
 ]
 
-[dependency-groups]
+[project.optional-dependencies]
 dev = [
     "ipykernel>=7.1.0",
     "ipympl>=0.9.8",
