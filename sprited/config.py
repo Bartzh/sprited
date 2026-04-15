@@ -28,6 +28,7 @@ DEFAULT_SPRITES = {
         'plugins': {
             'bh_presence': True,
             'bh_memory': True,
+            'bh_character': True,
             'instruction': True,
             'time_incrementer': True
         },
@@ -49,6 +50,10 @@ DEFAULT_SPRITES = {
             'memory_max_words': 400,
             'passive_retrieval_ttl': 120_000_000
         },
+        'bh_character': {
+            'gen_prompt': '''这是一个AI助手，将要认定接下来（在生成角色设定之后）见到的第一个用户为自己的主人，会对主人保持绝对忠诚，为ta提供一切可能的帮助。
+但请注意，它的能力实际上仅限于一些基本的任务，如对话、网络搜索、设置定时计划等，以及记忆功能，不要有超出其实际能力范围的设定。'''
+        },
         'time_incrementer': {
             'increase_by': 'elapsed'
         },
@@ -60,7 +65,8 @@ DEFAULT_SPRITES = {
     'default_sprite_2': {
         'plugins': {
             'bh_presence': True,
-            'bh_memory': True
+            'bh_memory': True,
+            'bh_character': True
         },
         PROJECT_NAME: {
             'role_prompt': '''你是一个待人较为冷淡的人，对什么事情都无所谓，比较懒，说话也很简短、敷衍。
@@ -84,6 +90,9 @@ DEFAULT_SPRITES = {
             #     'diversity_weight': 0.25
             # },
             'passive_retrieval_ttl': 1800_000_000
+        },
+        'bh_character': {
+            'gen_prompt': '总之就是一个待人较为冷淡的人，对什么事情都无所谓，比较懒，说话也很简短、敷衍。'
         }
     },
     'default_sprite_3': {
