@@ -56,6 +56,9 @@ class SpriteManager:
     heartbeat_is_running: bool
     heartbeat_task: Optional[asyncio.Task]
 
+    _initializing_sprites: dict[str, asyncio.Event]
+    _closing_sprites: dict[str, asyncio.Event]
+
     # 两者目前来说是一样的
     on_heartbeat_finished: asyncio.Event
     on_trigger_sprites_finished: asyncio.Event
@@ -180,6 +183,9 @@ class SpriteManager:
         self.activated_sprite_id_datas = {}
         self.heartbeat_is_running = False
         self.heartbeat_task = None
+
+        self._initializing_sprites = {}
+        self._closing_sprites = {}
 
         self.on_heartbeat_finished = asyncio.Event()
         self.on_heartbeat_finished.set()
@@ -405,6 +411,11 @@ class SpriteManager:
 
     async def init_sprite(self, sprite_id: str):
         """初始化sprite，若sprite处于triggering则等待"""
+        if sprite_id in self._initializing_sprites:
+            await self._initializing_sprites[sprite_id].wait()
+            return
+        self._initializing_sprites[sprite_id] = asyncio.Event()
+
         if sprite_id in self.activated_sprite_id_datas:
             await self.activated_sprite_id_datas[sprite_id]["on_trigger_finished"].wait()
         self.activated_sprite_id_datas[sprite_id] = {
@@ -417,10 +428,21 @@ class SpriteManager:
         await self.trigger_sprite(sprite_id)
 
         for plugin in self.get_plugins(sprite_id):
-            await plugin.on_sprite_init(sprite_id)
+            try:
+                await plugin.on_sprite_init(sprite_id)
+            except Exception:
+                logger.exception(f"plugin {plugin.name} on_sprite_init failed")
+
+        self._initializing_sprites[sprite_id].set()
+        del self._initializing_sprites[sprite_id]
 
     async def close_sprite(self, sprite_id: str):
         """手动关闭sprite，若sprite处于triggering则等待"""
+        if sprite_id in self._closing_sprites:
+            await self._closing_sprites[sprite_id].wait()
+            return
+        self._closing_sprites[sprite_id] = asyncio.Event()
+
         if self.activated_sprite_id_datas.get(sprite_id):
             await self.activated_sprite_id_datas[sprite_id]['on_trigger_finished'].wait()
             del self.activated_sprite_id_datas[sprite_id]
@@ -433,6 +455,9 @@ class SpriteManager:
             except Exception:
                 logger.exception(f"plugin {plugin.name} on_sprite_close failed")
         store_manager.close_sprite(sprite_id)
+
+        self._closing_sprites[sprite_id].set()
+        del self._closing_sprites[sprite_id]
 
     async def close_manager(self):
         logger.info("wait for the last heartbeat to close sprite manager")
