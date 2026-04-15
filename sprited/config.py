@@ -100,6 +100,7 @@ DEFAULT_SPRITES = {
         'plugins': {
             'bh_presence': True,
             'bh_memory': True,
+            'bh_character': False,
             'time_incrementer': True,
             'instruction': True
         },
