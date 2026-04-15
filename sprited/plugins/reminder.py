@@ -29,7 +29,7 @@ async def sprite_schedule_job(schedule: Schedule, sprite_id: str, title: str, de
     await sprite_manager.call_sprite_for_system(
         sprite_id=sprite_id,
         content=f'''当前时间是{format_time(current_times.sprite_world_datetime)}。现在将你唤醒是由于你之前主动设置的一个提醒事项到时间了{f'（但由于系统原因，有一些超出原定时间，具体为{format_duration(time_diff)}）' if time_diff > 300 else ''}，以下是提醒事项的相关信息，包括你为此提醒事项留下的详细说明，请根据此说明考虑现在应如何行动：
-提醒事项标题：{title}\n提醒事项说明：{description}\n{schedule.format_schedule(prefix='提醒事项', include_id=True, include_type=False)}''',
+提醒事项标题：{title}\n提醒事项说明：{description}\n{schedule.format_schedule(fallback_time_zone=time_settings.time_zone, prefix='提醒事项', include_id=True, include_type=False)}''',
         times=current_times,
         is_self_call=True,
         bh_memory={
