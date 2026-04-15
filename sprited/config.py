@@ -46,7 +46,8 @@ DEFAULT_SPRITES = {
             'always_available': True,
         },
         'bh_memory': {
-            'memory_base_ttl': 3600_000_000,
+            'memory_base_ttl': 1800_000_000,
+            'memory_max_ttl': 31557600_000_000,
             'memory_max_words': 400,
             'passive_retrieval_ttl': 120_000_000
         },
@@ -115,7 +116,8 @@ DEFAULT_SPRITES = {
             'passive_call_intervals': ()
         },
         'bh_memory': {
-            'memory_base_ttl': 3600_000_000,
+            'memory_base_ttl': 1800_000_000,
+            'memory_max_ttl': 31557600_000_000,
             'memory_max_words': 400,
             'passive_retrieval_ttl': 120_000_000
         },
