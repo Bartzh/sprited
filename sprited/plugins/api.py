@@ -5,15 +5,17 @@ import os
 import re
 import json
 from datetime import datetime, timedelta, timezone
-from typing import Optional
-from contextlib import asynccontextmanager
+from typing import Optional, Literal
+from pydantic import BaseModel
 from loguru import logger
 
-from fastapi import FastAPI, Request, HTTPException, Depends
+from fastapi import FastAPI, Request, HTTPException, Depends, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import StreamingResponse, Response, JSONResponse
+from fastapi.responses import Response, JSONResponse
 from fastapi.security import OAuth2PasswordBearer
+from starlette.websockets import WebSocketState
+import msgpack
 
 from pathlib import Path
 import aiohttp
@@ -29,23 +31,85 @@ from sprited.tools.send_message import SEND_MESSAGE, SEND_MESSAGE_CONTENT
 
 NAME = 'simple_api'
 
-#from fastapi.middleware.cors import CORSMiddleware
+class ClientAuthFrame(BaseModel):
+    type: Literal["auth"] = "auth"
+    token: str
+
+class ClientMessageFrame(BaseModel):
+    type: Literal["message"] = "message"
+    sprite_id: str
+    content: str
+    user_name: Optional[str] = None
+
+class ClientPingFrame(BaseModel):
+    type: Literal["ping"] = "ping"
+
+class ClientInitFrame(BaseModel):
+    type: Literal["init"] = "init"
+    sprite_id: str
+
+class ServerAuthResultFrame(BaseModel):
+    type: Literal["auth_result"] = "auth_result"
+    status: Literal["success", "error"]
+    accessible_sprites: Optional[list[str]] = None
+    detail: Optional[str] = None
+
+class ServerInitFrame(BaseModel):
+    type: Literal["init"] = "init"
+    sprite_id: str
+    messages: list[dict]
+
+class ServerEventFrame(BaseModel):
+    type: Literal["event"] = "event"
+    event: dict
+
+class ServerPongFrame(BaseModel):
+    type: Literal["pong"] = "pong"
+
+class ServerErrorFrame(BaseModel):
+    type: Literal["error"] = "error"
+    detail: str
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: dict[str, WebSocket] = {}
+        self.user_queues: dict[str, asyncio.Queue] = {}
+
+    async def connect(self, user_id: str, websocket: WebSocket):
+        if user_id in self.active_connections:
+            old_ws = self.active_connections[user_id]
+            try:
+                if old_ws.client_state != WebSocketState.DISCONNECTED:
+                    await old_ws.close()
+            except Exception:
+                pass
+        self.active_connections[user_id] = websocket
+        self.user_queues[user_id] = asyncio.Queue()
+
+    def disconnect(self, user_id: str):
+        self.active_connections.pop(user_id, None)
+        self.user_queues.pop(user_id, None)
+
+    async def send_msgpack(self, user_id: str, data: dict):
+        websocket = self.active_connections.get(user_id)
+        if websocket and websocket.client_state == WebSocketState.CONNECTED:
+            try:
+                await send_msgpack(websocket, data)
+            except Exception as e:
+                logger.error(f"Failed to send to {user_id}: {e}")
+
+    def get_queue(self, user_id: str) -> Optional[asyncio.Queue]:
+        return self.user_queues.get(user_id)
+
+connection_manager = ConnectionManager()
 
 
-# @asynccontextmanager
-# async def lifespan(app: FastAPI):
-#     # 初始化数据库
-#     await init_db()
-#     await sprite_manager.init_manager(plugins=[
-#         PresencePlugin,
-#         MemoryPlugin,
-#         InstructionPlugin,
-#         ReminderPlugin,
-#         TimeIncrementerPlugin,
-#         NotePlugin,
-#     ])
-#     yield
-#     await sprite_manager.close_manager()
+async def send_msgpack(websocket: WebSocket, data: dict) -> None:
+    await websocket.send_bytes(msgpack.packb(data, use_bin_type=True))
+
+async def receive_msgpack(websocket: WebSocket) -> dict:
+    return msgpack.unpackb(await websocket.receive_bytes(), raw=False)
+
 
 app = FastAPI()
 
@@ -81,14 +145,6 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={"detail": jsonable_encoder(exc.errors())}
     )
 
-
-#app.add_middleware(
-#    CORSMiddleware,
-#    allow_origins=["*"],  # 允许所有来源，根据需要调整为具体域名
-#    allow_credentials=True,
-#    allow_methods=["*"],  # 允许所有 HTTP 方法（包括 OPTIONS）
-#    allow_headers=["*"],  # 允许所有请求头
-#)
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/login")
@@ -133,150 +189,184 @@ users_db = load_users_from_json()
 private_key = os.getenv("API_PRIVATE_KEY", NAME)
 
 
-user_queues: dict[str, asyncio.Queue] = {}
-
 @sprite_manager.on_sprite_output
-async def put_event(**kwargs):
-    for user_id in user_queues.keys():
-        if kwargs['sprite_id'] in users_db[user_id]['accessible_sprites']:
-            await user_queues[user_id].put(kwargs)
+async def on_sprite_output(**kwargs):
+    sprite_id = kwargs['sprite_id']
+    for user_id, queue in connection_manager.user_queues.items():
+        if sprite_id in users_db[user_id]['accessible_sprites']:
+            await queue.put(kwargs)
 
 
-
-@app.get("/api/get_accessible_sprites")
-async def get_accessible_sprites(token: str = Depends(oauth2_scheme)):
-    payload = verify_token(token)
-    user_id = payload["sub"]
-    return {'accessible_sprites': users_db[user_id]['accessible_sprites']}
-
-
-@app.post("/api/init")
-async def init_endpoint(request: Request, token: str = Depends(oauth2_scheme)):
-    payload = verify_token(token)
-    api_input = await request.json()
-    sprite_id = api_input.get("sprite_id")
-    user_id = payload['sub']
-    await verify_sprite_accessible(user_id, sprite_id)
-    user_queues[user_id] = asyncio.Queue()
-    await sprite_manager.init_sprite(sprite_id)
-    main_messages = await sprite_manager.main_graph.get_messages(sprite_id)
-    human_message_pattern = re.compile(r'^\[.*?\]\n.*?: ')
-    messages = []
-    for message in main_messages:
-        metadata = SpritedMsgMeta.parse(message)
-        if (
-            metadata.message_type != DEFAULT_USER_MSG_TYPE and
-            metadata.message_type != DEFAULT_AI_MSG_TYPE
-        ):
-            continue
-        elif isinstance(message, AIMessage):
-            for tool_call in message.tool_calls:
-                if tool_call["name"] == SEND_MESSAGE:
-                    if tool_call["args"].get(SEND_MESSAGE_CONTENT):
-                        messages.append({"role": "ai", "content": tool_call["args"][SEND_MESSAGE_CONTENT], "id": f'{message.id}.{tool_call["id"]}', "name": None})
-                    else:
-                        logger.warning(f'{SEND_MESSAGE}意外的没有参数，可能是打断导致的概率问题，也可能就是单纯的大模型输出错误')
-        elif isinstance(message, HumanMessage):
-            if isinstance(message.content, str):
-                content = human_message_pattern.sub('', message.text)
-                messages.append({"role": message.type, "content": content, "id": message.id, "name": message.name})
-            elif isinstance(message.content, list):
-                count = 0
-                for c in message.content:
-                    if isinstance(c, str):
-                        content = human_message_pattern.sub('', c)
-                        messages.append({"role": message.type, "content": content, "id": f'{message.id}.{count}', "name": message.name})
-                    elif isinstance(c, dict):
-                        if c.get("type") == "text" and isinstance(c.get("text"), str):
-                            content = human_message_pattern.sub('', c["text"])
-                            messages.append({"role": message.type, "content": content, "id": f'{message.id}.{count}', "name": message.name})
-                    count += 1
-        else:
-            messages.append({"role": message.type, "content": message.text, "id": message.id, "name": message.name})
-    return {"messages": messages}
-
-@app.post("/api/input")
-async def input_endpoint(request: Request, token: str = Depends(oauth2_scheme)):
-    payload = verify_token(token)
-    user_input: dict = await request.json()
-    message = user_input.get("message", '')
-    extracted_message = convert_to_content_blocks(message)
-    if not extracted_message:
-        raise HTTPException(status_code=400, detail="message is required")
-    user_id = payload['sub']
-    sprite_id = user_input.get("sprite_id")
-    await verify_sprite_accessible(user_id, sprite_id)
-
-    is_admin = users_db[user_id].get('is_admin')
-
-    sprite_manager.call_sprite_for_user_with_command_nowait(
-        user_input=extracted_message,
-        sprite_id=sprite_id,
-        is_admin=is_admin,
-        user_name=user_input.get("user_name")
-    )
-
-    return Response()
-
-
-@app.get("/api/sse")
-async def sse(token: str = Depends(oauth2_scheme)):
-    payload = verify_token(token)
-    user_id = payload['sub']
-    sse_heartbeat_string = "event: heartbeat\ndata: feelmyheartbeat\n\n"
-    async def event_generator():
-        connection_id = user_id + '_' + str(id(asyncio.current_task()))
+async def send_event_to_user(user_id: str, websocket: WebSocket):
+    while True:
         try:
-            while True:
-                # 从事件队列中获取消息，设置超时时间
-                queue = user_queues.get(user_id)
-                if queue:
-                    try:
-                        # 使用 asyncio.wait_for 设置超时，避免长时间阻塞
-                        event = await asyncio.wait_for(queue.get(), timeout=2.5)
-                        # 在自我调用时发送的消息会同时推送通知
-                        if (
-                            event.get("is_self_call") and
-                            event.get("name") == "send_message" and
-                            (user_sub := await get_user_subscriptions(user_id)) and
-                            (message_content := event.get("args", {}).get("content", ""))
-                        ):
-                            message = wp.get(message=message_content, subscription=user_sub, ttl=600)
-                            async with aiohttp.ClientSession() as session:
-                                await session.post(
-                                    url=str(user_sub.endpoint),
-                                    data=message.encrypted,
-                                    headers=message.headers,
-                                )
-                        yield f"event: message\ndata: {json.dumps(event)}\n\n"  # 按照 SSE 格式发送消息
-                    except asyncio.TimeoutError:
-                        # 发送心跳消息防止连接超时
-                        yield sse_heartbeat_string
-                else:
-                    # 如果没有队列，也发送心跳防止连接超时
-                    await asyncio.sleep(1)
-                    yield sse_heartbeat_string
-
+            queue = connection_manager.get_queue(user_id)
+            if not queue:
+                break
+            event = await queue.get()
+            if (
+                event.get("is_self_call") and
+                event.get("name") == "send_message" and
+                (user_sub := await get_user_subscriptions(user_id)) and
+                (message_content := event.get("args", {}).get("content", ""))
+            ):
+                message = wp.get(message=message_content, subscription=user_sub, ttl=600)
+                async with aiohttp.ClientSession() as session:
+                    await session.post(
+                        url=str(user_sub.endpoint),
+                        data=message.encrypted,
+                        headers=message.headers,
+                    )
+            await send_msgpack(websocket, {"type": "event", "event": event})
         except asyncio.CancelledError:
-            logger.info(f"SSE连接被取消: {connection_id}")
-            raise
+            break
         except Exception as e:
-            logger.error(f"SSE连接异常: {connection_id}, 错误: {str(e)}")
-            raise
-        finally:
-            logger.info(f"SSE连接已关闭: {connection_id}")
+            logger.error(f"Event sender error for {user_id}: {e}")
+            break
 
-    # 添加更多防止缓存的头部
-    return StreamingResponse(
-        event_generator(), 
-        media_type="text/event-stream", 
-        headers={
-            "X-Accel-Buffering": "no", 
-            "Cache-Control": "no-cache, no-transform",
-            "Connection": "keep-alive",
-            "X-Content-Type-Options": "nosniff"
-        }
-    )
+
+@app.websocket("/api/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    connection_id = None
+    user_id = None
+    event_task = None
+    try:
+        auth_data = await receive_msgpack(websocket)
+        auth_frame = ClientAuthFrame.model_validate(auth_data)
+        payload = verify_token(auth_frame.token)
+        user_id = payload["sub"]
+        connection_id = user_id + '_' + str(id(asyncio.current_task()))
+
+        await connection_manager.connect(user_id, websocket)
+
+        await send_msgpack(websocket, ServerAuthResultFrame(
+            status="success",
+            accessible_sprites=users_db[user_id]['accessible_sprites']
+        ).model_dump())
+
+        logger.info(f"WebSocket连接已建立: {connection_id}")
+
+        event_task = asyncio.create_task(send_event_to_user(user_id, websocket))
+
+        while True:
+            try:
+                data = await receive_msgpack(websocket)
+                msg_type = data.get("type")
+
+                if msg_type == "ping":
+                    await send_msgpack(websocket, ServerPongFrame().model_dump())
+
+                elif msg_type == "message":
+                    sprite_id = data.get("sprite_id")
+                    content = data.get("content", "")
+                    user_name = data.get("user_name", None)
+                    attachments = data.get("attachments", [])
+
+                    try:
+                        verify_sprite_accessible(user_id, sprite_id)
+                    except HTTPException as e:
+                        await send_msgpack(websocket, ServerErrorFrame(detail=e.detail).model_dump())
+                        continue
+
+                    extracted_messages = []
+                    for attachment in attachments:
+                        if attachment:
+                            extracted_messages.extend(convert_to_content_blocks(attachment['content']))
+                    extracted_messages.extend(convert_to_content_blocks(content))
+                    if not extracted_messages:
+                        await send_msgpack(websocket, ServerErrorFrame(detail="message is required").model_dump())
+                        continue
+
+                    is_admin = users_db[user_id].get('is_admin')
+                    sprite_manager.call_sprite_for_user_with_command_nowait(
+                        user_input=extracted_messages,
+                        sprite_id=sprite_id,
+                        is_admin=is_admin,
+                        user_name=user_name
+                    )
+
+                elif msg_type == "init":
+                    sprite_id = data.get("sprite_id")
+
+                    try:
+                        verify_sprite_accessible(user_id, sprite_id)
+                    except HTTPException as e:
+                        await send_msgpack(websocket, ServerErrorFrame(detail=e.detail).model_dump())
+                        continue
+
+                    await sprite_manager.init_sprite(sprite_id)
+                    main_messages = await sprite_manager.main_graph.get_messages(sprite_id)
+                    human_message_pattern = re.compile(r'^\[.*?\]\n.*?: ')
+                    messages = []
+                    for message in main_messages:
+                        metadata = SpritedMsgMeta.parse(message)
+                        if (
+                            metadata.message_type != DEFAULT_USER_MSG_TYPE and
+                            metadata.message_type != DEFAULT_AI_MSG_TYPE
+                        ):
+                            continue
+                        elif isinstance(message, AIMessage):
+                            for tool_call in message.tool_calls:
+                                if tool_call["name"] == SEND_MESSAGE:
+                                    if tool_call["args"].get(SEND_MESSAGE_CONTENT):
+                                        messages.append({"role": "ai", "content": tool_call["args"][SEND_MESSAGE_CONTENT], "id": f'{message.id}.{tool_call["id"]}', "name": None})
+                                    else:
+                                        logger.warning(f'{SEND_MESSAGE}意外的没有参数，可能是打断导致的概率问题，也可能就是单纯的大模型输出错误')
+                        elif isinstance(message, HumanMessage):
+                            if isinstance(message.content, str):
+                                content = human_message_pattern.sub('', message.text)
+                                messages.append({"role": message.type, "content": content, "id": message.id, "name": message.name})
+                            elif isinstance(message.content, list):
+                                contents = message.content.copy()
+                                for i, c in enumerate(contents):
+                                    if isinstance(c, str):
+                                        content = human_message_pattern.sub('', c)
+                                        contents[i] = content
+                                    elif isinstance(c, dict):
+                                        if c.get("type") == "text" and isinstance(c.get("text"), str):
+                                            content = human_message_pattern.sub('', c["text"])
+                                            c_dict = c.copy()
+                                            c_dict['text'] = content
+                                            contents[i] = c_dict
+                                messages.append({"role": message.type, "content": contents, "id": message.id, "name": message.name})
+                        else:
+                            messages.append({"role": message.type, "content": message.text, "id": message.id, "name": message.name})
+
+                    await send_msgpack(websocket, ServerInitFrame(
+                        sprite_id=sprite_id,
+                        messages=messages
+                    ).model_dump())
+
+                else:
+                    await send_msgpack(websocket, ServerErrorFrame(detail=f"Unknown message type: {msg_type}").model_dump())
+
+            except WebSocketDisconnect:
+                logger.info(f"WebSocket连接断开: {connection_id}")
+                break
+            except Exception as e:
+                logger.exception(f"WebSocket错误: {connection_id}, {str(e)}")
+                try:
+                    await send_msgpack(websocket, ServerErrorFrame(detail=str(e)).model_dump())
+                except Exception:
+                    pass
+
+    except Exception as e:
+        logger.error(f"WebSocket连接异常: {connection_id}, {str(e)}")
+        try:
+            if user_id:
+                await connection_manager.send_msgpack(user_id, ServerErrorFrame(detail=str(e)).model_dump())
+        except Exception:
+            pass
+    finally:
+        if user_id:
+            connection_manager.disconnect(user_id)
+            if event_task:
+                event_task.cancel()
+        logger.info(f"WebSocket连接已关闭: {connection_id}")
+
+
+
 
 # 生成 JWT 的函数
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -297,7 +387,7 @@ def verify_token(token: str):
         raise HTTPException(status_code=400, detail="User not found")
     return payload
 
-async def verify_sprite_accessible(user_id: Optional[str] = None, sprite_id: Optional[str] = None):
+def verify_sprite_accessible(user_id: Optional[str] = None, sprite_id: Optional[str] = None):
     if not user_id:
         raise HTTPException(status_code=400, detail="User id is required")
     if not sprite_id:
