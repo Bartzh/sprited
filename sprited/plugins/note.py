@@ -84,7 +84,7 @@ async def write_note(
     notes[id] = Note(title, content)
     data.notes = notes
 
-    if 'bh_memory' in sprite_manager.get_plugin_names(sprite_id):
+    if sprite_manager.is_plugin_enabled('bh_memory', sprite_id):
         plugin = sprite_manager.get_plugin('bh_memory', sprite_id)
         content = content if len(content) <= 40 else content[:40] + "..."
         times = Times.from_time_settings(store_manager.get_settings(sprite_id).time_settings)
@@ -92,12 +92,14 @@ async def write_note(
             sprite_id=sprite_id,
             type='original',
             content=f'我于 {format_time(times.sprite_world_datetime)} 记下了笔记“{title}”，内容是：{content}',
+            creation_times=times,
             lambd=0.6
         )
         await plugin.add_memory(
             sprite_id=sprite_id,
             type='reflective',
             content=f'{title}：{content}',
+            creation_times=times,
             lambd=0.4
         )
 

@@ -207,6 +207,7 @@ async def send_event_to_user(user_id: str, websocket: WebSocket):
             if (
                 event.get("is_self_call") and
                 event.get("name") == "send_message" and
+                not event.get("not_completed") and
                 (user_sub := await get_user_subscriptions(user_id)) and
                 (message_content := event.get("args", {}).get("content", ""))
             ):
@@ -350,6 +351,8 @@ async def websocket_endpoint(websocket: WebSocket):
                     await send_msgpack(websocket, ServerErrorFrame(detail=str(e)).model_dump())
                 except Exception:
                     pass
+                # 无论如何都要退出，避免死循环
+                break
 
     except Exception as e:
         logger.error(f"WebSocket连接异常: {connection_id}, {str(e)}")
