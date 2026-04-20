@@ -262,7 +262,7 @@ class SpriteManager:
                 elif 'mimo-v2' in model and model != 'mimo-v2-tts':
                     kwargs['reasoning_keep_policy'] = 'all'
                 if provider == 'dashscope':
-                    if model.startswith(('qwen-', 'qwen3-', 'qwen3.5-')):
+                    if model.startswith('qwen'):
                         return ChatQwen(
                             model=model,
                             enable_thinking=enable_thinking
