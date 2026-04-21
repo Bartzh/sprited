@@ -206,11 +206,12 @@ async def send_event_to_user(user_id: str, websocket: WebSocket):
             event = await queue.get()
             if (
                 event.get("is_self_call") and
-                event.get("name") == "send_message" and
+                event.get("method") == "send_message" and
                 not event.get("not_completed") and
                 (user_sub := await get_user_subscriptions(user_id)) and
-                (message_content := event.get("args", {}).get("content", ""))
+                (message_content := event.get("params", {}).get("content", ""))
             ):
+                logger.info(f"Sending webpush message to {user_id}")
                 message = wp.get(message=message_content, subscription=user_sub, ttl=600)
                 async with aiohttp.ClientSession() as session:
                     await session.post(
