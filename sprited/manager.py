@@ -18,7 +18,7 @@ from sprited.types import InterruptData, MainState, CallSpriteRequest, DoubleTex
 from sprited.graphs.base import StateMerger
 from sprited.graphs.main import MainGraph, SEND_MESSAGE_TOOL_CONTENT
 from sprited.config import load_config, get_init_on_startup_sprite_ids, get_sprite_enabled_plugin_names
-from sprited.utils import is_valid_json, gather_safe
+from sprited.utils import is_valid_json, gather_safe, cancel_task
 from sprited.times import format_time, format_duration, Times, parse_timedelta, SpriteTimeSettings, timedelta_to_microseconds, TimestampUs
 from sprited.message import (
     format_messages,
@@ -436,6 +436,8 @@ class SpriteManager:
         self._initializing_sprites[sprite_id].set()
         del self._initializing_sprites[sprite_id]
 
+        logger.info(f"Sprite {sprite_id} initialized")
+
     async def close_sprite(self, sprite_id: str):
         """手动关闭sprite，若sprite处于triggering则等待"""
         if sprite_id in self._closing_sprites:
@@ -459,26 +461,41 @@ class SpriteManager:
         self._closing_sprites[sprite_id].set()
         del self._closing_sprites[sprite_id]
 
+        logger.info(f"Sprite {sprite_id} closed")
+
     async def close_manager(self):
         logger.info("wait for the last heartbeat to close sprite manager")
         self.heartbeat_is_running = False
         if self.heartbeat_task is not None:
-            await self.on_heartbeat_finished.wait()
-            self.heartbeat_task.cancel()
-            try:
-                await self.heartbeat_task
-            except asyncio.CancelledError:
-                pass
+            async with asyncio.timeout(60):
+                try:
+                    await self.on_heartbeat_finished.wait()
+                except asyncio.CancelledError:
+                    logger.exception("heartbeat task timeout, cancel it")
+            await cancel_task(self.heartbeat_task)
             self.heartbeat_task = None
 
+        logger.info("wait for the tasks to close sprite manager")
+
         if self._tasks:
-            await gather_safe(*self._tasks)
+            async with asyncio.timeout(120):
+                try:
+                    await gather_safe(*self._tasks)
+                except asyncio.CancelledError:
+                    logger.exception("tasks timeout, cancel it")
+                    await gather_safe(*[cancel_task(task) for task in self._tasks])
+            self._tasks.clear()
+
+        logger.info("wait for the plugins to close sprite manager")
 
         for plugin in self.plugins_with_name.values():
-            try:
-                await plugin.on_manager_close()
-            except Exception:
-                logger.exception(f"plugin {plugin.name} on_manager_close failed")
+            async with asyncio.timeout(120):
+                try:
+                    await plugin.on_manager_close()
+                except asyncio.CancelledError:
+                    logger.exception(f"plugin {plugin.name} on_manager_close timeout, cancel it")
+                except Exception:
+                    logger.exception(f"plugin {plugin.name} on_manager_close failed")
 
         await self.main_graph.conn.close()
         await store_stop_listener()
@@ -1150,7 +1167,15 @@ class SpriteManager:
 
     def add_task(self, coro: Coroutine) -> asyncio.Task:
         task = asyncio.create_task(coro)
-        task.add_done_callback(lambda future: future.result())
+
+        def _cleanup_task(future: asyncio.Task):
+            try:
+                self._tasks.remove(future)
+            except ValueError:
+                pass  # 任务可能已被手动移除
+            future.result()
+
+        task.add_done_callback(_cleanup_task)
         self._tasks.append(task)
         return task
 

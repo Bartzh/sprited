@@ -248,3 +248,10 @@ async def gather_safe(*coros_or_futures: Coroutine | asyncio.Future, return_exce
             if not return_exceptions:
                 results[idx] = None
     return results
+
+async def cancel_task(task: asyncio.Task) -> None:
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
